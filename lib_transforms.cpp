@@ -395,7 +395,6 @@ void hadamard_transform(
         }
         for (unsigned k = 0; k < n; k++)
             vec[D + n + k] = tmp[k];
-
         hadamard_transform(vec, tmp, n, D);
         hadamard_transform(vec, tmp, n, D + n);
     }

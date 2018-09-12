@@ -143,8 +143,8 @@ int saveImage(
     for (unsigned ch = 0, k = 0; ch < c; ch++)
     for (unsigned y = 0; y < h; y++) {
     for (unsigned x = 0; x < w; x++, k++)
-        imTmp[ch + x * c + y * c * w] = clip(i_im[k], p_min, p_max);
-        //imTmp[ch + x * c + y * c * w] = i_im[k];
+        //imTmp[ch + x * c + y * c * w] = clip(i_im[k], p_min, p_max);
+        imTmp[ch + x * c + y * c * w] = i_im[k];
     }
 
     //if (write_png_f32(p_name, imTmp, p_imSize.width, p_imSize.height, p_imSize.nChannels) != 0) {

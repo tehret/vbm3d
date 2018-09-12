@@ -30,12 +30,12 @@ CXXOPT	= $(COPT)
 
 # C compilation flags
 CFLAGS	= $(COPT) -Wall -Wextra \
-	-Wno-write-strings -ansi -std=c99 #-fsanitize=address
+	-Wno-write-strings -ansi -std=c99# -g
 # C++ compilation flags
 CXXFLAGS	= $(CXXOPT) -Wall -Wextra \
-	-Wno-write-strings -Wno-deprecated -ansi -std=c++11 #-g -fsanitize=address
+	-Wno-write-strings -Wno-deprecated -ansi -std=c++11# -g -fsanitize=address
 # link flags
-LDFLAGS	= -lpng -lm -lfftw3f -ltiff -ljpeg #-fsanitize=address
+LDFLAGS	= -lpng -lm -lfftw3f -ltiff -ljpeg# -fsanitize=address
 
 # use openMP with `make OMP=1`
 ifdef OMP
@@ -57,3 +57,6 @@ endif
 # link all the object code
 $(BIN): $(OBJ) $(LIBDEPS)
 	$(CXX) -o $@ $(OBJ) $(LDFLAGS)
+
+clean:
+	rm *.o Utilities/*.o

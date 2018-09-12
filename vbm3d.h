@@ -6,6 +6,8 @@
 #include "Utilities/LibVideoT.hpp"
 #include "parameters.h"
 
+//#define OPTICALFLOW
+
 /** ------------------ **/
 /** - Main functions - **/
 /** ------------------ **/
@@ -13,6 +15,9 @@
 int run_vbm3d(
     const float sigma
 ,   Video<float> &img_noisy
+#ifdef OPTICALFLOW
+,   Video<float> &flow
+#endif
 ,   Video<float> &img_basic
 ,   Video<float> &img_denoised
 ,   const Parameters& prms_1
@@ -24,6 +29,9 @@ int run_vbm3d(
 void vbm3d_1st_step(
     const float sigma
 ,   Video<float> const& img_noisy
+#ifdef OPTICALFLOW
+,   Video<float> &flow
+#endif
 ,   Video<float> &img_basic
 ,   const Parameters& prms
 ,   fftwf_plan *  plan_2d
@@ -40,6 +48,9 @@ void vbm3d_2nd_step(
     const float sigma
 ,   Video<float> const& img_noisy
 ,   Video<float> const& img_basic
+#ifdef OPTICALFLOW
+,   Video<float> &flow
+#endif
 ,   Video<float> &img_denoised
 ,   const Parameters& prms
 ,   fftwf_plan *  plan_2d
@@ -58,8 +69,8 @@ void dct_2d_process(
 ,   Video<float> const& img
 ,   std::vector<unsigned> const& patch_table 
 ,   fftwf_plan * plan
-,   const unsigned nHW
 ,   const unsigned kHW
+,   const unsigned ktHW
 ,   std::vector<float> const& coef_norm
 );
 
@@ -68,6 +79,9 @@ int computeSimilarPatches(
 ,	std::vector<unsigned>& indexes
 ,	unsigned idx
 ,	const Video<float>& vid
+#ifdef OPTICALFLOW
+,   Video<float> &flow
+#endif
 ,	const Parameters& prms
 );
 
@@ -78,21 +92,24 @@ void bior_2d_process(
 ,   std::vector<unsigned> const& patch_table 
 ,   const unsigned nHW
 ,   const unsigned kHW
+,   const unsigned ktHW
 ,   std::vector<float> &lpd
 ,   std::vector<float> &hpd
 );
 
-void dct_2d_inverse(
+void dct_2d_inv(
     std::vector<float> &group_3D_table
 ,   const unsigned kHW
+,   const unsigned ktHW
 ,   const unsigned N
 ,   std::vector<float> const& coef_norm_inv
 ,   fftwf_plan * plan
 );
 
-void bior_2d_inverse(
+void bior_2d_inv(
     std::vector<float> &group_3D_table
 ,   const unsigned kHW
+,   const unsigned ktHW
 ,   std::vector<float> const& lpr
 ,   std::vector<float> const& hpr
 );
@@ -105,6 +122,7 @@ void ht_filtering_hadamard(
 ,   std::vector<float> &tmp
 ,   const unsigned nSx_r
 ,   const unsigned kHard
+,   const unsigned ktHard
 ,   const unsigned chnls
 ,   std::vector<float> const& sigma_table
 ,   const float lambdaThr3D
@@ -119,6 +137,7 @@ void ht_filtering_haar(
 ,   std::vector<float> &tmp
 ,   const unsigned nSx_r
 ,   const unsigned kHard
+,   const unsigned ktHard
 ,   const unsigned chnls
 ,   std::vector<float> const& sigma_table
 ,   const float lambdaThr3D
@@ -132,6 +151,7 @@ void wiener_filtering_hadamard(
 ,   std::vector<float> &tmp
 ,   const unsigned nSx_r
 ,   const unsigned kWien
+,   const unsigned ktWien
 ,   const unsigned chnls
 ,   std::vector<float> const& sigma_table
 ,   std::vector<float> &weight_table
@@ -144,17 +164,9 @@ void wiener_filtering_haar(
 ,   std::vector<float> &tmp
 ,   const unsigned nSx_r
 ,   const unsigned kWien
+,   const unsigned ktWien
 ,   const unsigned chnls
 ,   std::vector<float> const& sigma_table
-,   std::vector<float> &weight_table
-);
-
-//! Compute weighting using Standard Deviation
-void sd_weighting(
-    std::vector<float> const& group_3D
-,   const unsigned nSx_r
-,   const unsigned kHW
-,   const unsigned chnls
 ,   std::vector<float> &weight_table
 );
 
@@ -168,6 +180,22 @@ void bior1_5_transform(
 ,   const unsigned d_o
 ,   const unsigned N_i
 ,   const unsigned N_o
+);
+
+void temporal_transform(
+    std::vector<float>& group_3D
+,   const unsigned kHW
+,   const unsigned ktHW
+,   const unsigned chnls
+,   const unsigned nSx_r
+);
+
+void temporal_inv_transform(
+std::vector<float>& group_3D
+,   const unsigned kHW
+,   const unsigned ktHW
+,   const unsigned chnls
+,   const unsigned nSx_r
 );
 
 /** ---------------------------------- **/
