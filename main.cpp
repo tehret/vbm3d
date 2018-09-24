@@ -209,7 +209,7 @@ int main(int argc, char **argv)
 	const unsigned frameStep  = clo_option("-s", 1, "frame step");
 
 	//! General parameters
-	const float fSigma = clo_option("-sigma", 0, "Add noise of standard deviation sigma");
+	const float fSigma = clo_option("-sigma", 0.f, "Add noise of standard deviation sigma");
 	const bool addnoise  = (bool) clo_option("-add", true, "< add noise");
 	const bool verbose  = (bool) clo_option("-verbose"     , true , "> verbose output");
 
