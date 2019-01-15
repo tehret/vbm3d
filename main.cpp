@@ -68,9 +68,9 @@ void initializeParameters_1(
 		prms.Nb = Nb;
 
 	if(d < 0)
-		prms.d = (7*7)/(255.*255.);
+		prms.d = (7.*7.)/(255.*prms.k*prms.k);
 	else
-		prms.d = (d*d)/(255.*255.);
+		prms.d = (d*d)/(255.*prms.k*prms.k);
 
 	if(p < 0)
 		prms.p = 6;
@@ -93,7 +93,7 @@ void initializeParameters_1(
 		prms.lambda3D = lambda3D;
 
 	if(T_2D == NONE)
-		prms.T_2D = BIOR;
+		prms.T_2D = DCT;
 	else
 		prms.T_2D = T_2D;
 
@@ -148,9 +148,9 @@ void initializeParameters_2(
 		prms.Nb = Nb;
 
 	if(d < 0)
-		prms.d = (3*3)/(255.*255.);
+		prms.d = (3.*3.)/(255.*prms.k*prms.k);
 	else
-		prms.d = (d*d)/(255.*255.);
+		prms.d = (d*d)/(255.*prms.k*prms.k);
 
 	if(p < 0)
 		prms.p = 4;
@@ -195,10 +195,10 @@ int main(int argc, char **argv)
 	using std::string;
 	const string  input_path = clo_option("-i"    , ""              , "< input sequence");
 	const string  inbsc_path = clo_option("-b"    , ""              , "< input basic sequence");
-	const string  noisy_path = clo_option("-nisy" , "nisy_%03d.png" , "> noisy sequence");
-	const string  final_path = clo_option("-deno" , "deno_%03d.png" , "> denoised sequence");
-	const string  basic_path = clo_option("-bsic" , "bsic_%03d.png" , "> basic denoised sequence");
-	const string   diff_path = clo_option("-diff" , "diff_%03d.png" , "> difference sequence");
+	const string  noisy_path = clo_option("-nisy" , "nisy_%03d.tiff" , "> noisy sequence");
+	const string  final_path = clo_option("-deno" , "deno_%03d.tiff" , "> denoised sequence");
+	const string  basic_path = clo_option("-bsic" , "bsic_%03d.tiff" , "> basic denoised sequence");
+	const string   diff_path = clo_option("-diff" , "diff_%03d.tiff" , "> difference sequence");
 	const string   meas_path = clo_option("-meas" , "measure.txt"   , "> text file containing the measures");
 #ifdef OPTICALFLOW
 	const string   flow_path = clo_option("-flow" , "flow_%03d.flo" , "< optical flow ");
@@ -238,6 +238,13 @@ int main(int argc, char **argv)
 	const float lambda3D = clo_option("-lambda3d", -1. , "< ");
 	const unsigned color_space  =  (unsigned) clo_option("-color", 0 , "< color space");
 
+	//! Check inputs
+	if (input_path == "")
+	{
+		fprintf(stderr, "%s: no input images.\nTry `%s --help' for more information.\n",
+				argv[0], argv[0]);
+		return EXIT_FAILURE;
+	}
 
 	//! Variables initialization
 	const unsigned T_2D_hard  = (unsigned) clo_option("-T2dh", NONE , "< tau_2D_hard");
