@@ -123,8 +123,8 @@ int run_vbm3d(
 #ifdef _OPENMP
 	cout << "Open MP used" << endl;
 	nb_threads = omp_get_num_procs();
-	if(nb_threads > 4)
-		nb_threads = 4;
+	if(nb_threads > 32)
+		nb_threads = 32;
 
 	//! In case where the number of processors isn't a power of 2
 	if (!power_of_2(nb_threads))
@@ -275,7 +275,6 @@ int run_vbm3d(
 		}
 		else
 			cout << "skipping 1st step." << endl;
-
 
 		if(prms_2.k > 0)
 		{
@@ -851,25 +850,11 @@ inline void localSearch(
 	unsigned rangex[2];
 	unsigned rangey[2];
 
-#ifdef CENTRED_SEARCH
 	rangex[0] = std::max(0, (int)px - (sWx-1)/2);
 	rangey[0] = std::max(0, (int)py - (sWy-1)/2);
 
 	rangex[1] = std::min((int)vid.sz.width  - sPx, (int)px + (sWx-1)/2);
 	rangey[1] = std::min((int)vid.sz.height - sPx, (int)py + (sWy-1)/2);
-#else
-	int shift_x = std::min(0, (int)px - (sWx-1)/2); 
-	int shift_y = std::min(0, (int)py - (sWy-1)/2); 
-
-	shift_x += std::max(0, (int)px + (sWx-1)/2 - (int)vid.sz.width  + sPx); 
-	shift_y += std::max(0, (int)py + (sWy-1)/2 - (int)vid.sz.height + sPx); 
-
-	rangex[0] = std::max(0, (int)px - (sWx-1)/2 - shift_x);
-	rangey[0] = std::max(0, (int)py - (sWy-1)/2 - shift_y);
-
-	rangex[1] = std::min((int)vid.sz.width  - sPx, (int)px + (sWx-1)/2 - shift_x);
-	rangey[1] = std::min((int)vid.sz.height - sPx, (int)py + (sWy-1)/2 - shift_y);
-#endif
 
 	//! Redefine size of search range
 	sWx = rangex[1] - rangex[0] + 1;
@@ -1249,8 +1234,8 @@ void ht_filtering_hadamard(
 		{
 #ifdef DCTHRESH
             if (fabs(group_3D[k + dc]) > T)
-#else
-            if (k < nSx_r || fabs(group_3D[k + dc]) > T)
+#else 
+            if (k == 0 || fabs(group_3D[k + dc]) > T)
 #endif
 				weight_table[c]++;
 			else
@@ -1318,7 +1303,7 @@ void ht_filtering_haar(
 #ifdef DCTHRESH
             if (fabs(group_3D[k + dc]) > T)
 #else
-            if (k < nSx_r || fabs(group_3D[k + dc]) > T)
+            if (k == 0 || fabs(group_3D[k + dc]) > T)
 #endif
 				weight_table[c]++;
 			else
@@ -1730,5 +1715,6 @@ void temporal_inv_transform(
 	}
 }
 #else
+
 
 #endif
