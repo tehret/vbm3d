@@ -73,20 +73,20 @@ There is only four mandatory input arguments:
 When providing a sequence that is already noisy the option `-add` should be set to false.
 
 All path should be given using the C standard. For example to reference to the following video:
-video/i0000.png
-video/i0001.png
-video/i0002.png
-video/i0003.png
-video/i0004.png
-video/i0005.png
-video/i0006.png
-video/i0007.png
-video/i0008.png
-video/i0009.png
+* video/i0000.png
+* video/i0001.png
+* video/i0002.png
+* video/i0003.png
+* video/i0004.png
+* video/i0005.png
+* video/i0006.png
+* video/i0007.png
+* video/i0008.png
+* video/i0009.png
 
-The command should be 
+The command for denoising with a noise standard deviation of 20 should be 
 ```
-$ ./VBM3Ddenoising -i video/i%04d.png -f 0 -l 9
+$ ./VBM3Ddenoising -i video/i%04d.png -f 0 -l 9 -sigma 20
 ```
 
 -----

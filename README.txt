@@ -76,8 +76,8 @@ video/i0007.png
 video/i0008.png
 video/i0009.png
 
-The command should be 
-$ ./VBM3Ddenoising -i video/i%04d.png -f 0 -l 9
+The command for denoising with a noise standard deviation of 20 should be 
+$ ./VBM3Ddenoising -i video/i%04d.png -f 0 -l 9 -sigma 20
 
 -----
 
