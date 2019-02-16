@@ -172,4 +172,5 @@ unsigned ind_size(
 ,   const unsigned step
 );
 
+
 #endif // UTILITIES_H_INCLUDED

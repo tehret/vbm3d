@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, Marc Lebrun <marc.lebrun@cmla.ens-cachan.fr>
+ * Copyright (c) 2018, Thibaud Ehret <ehret.thibaud@gmail.com>
  * All rights reserved.
  *
  * This program is free software: you can use, modify and/or
@@ -10,12 +10,11 @@
  * this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-
 /**
  * @file vbm3d.cpp
  * @brief VBM3D denoising functions
  *
- * @author Marc Lebrun <marc.lebrun@cmla.ens-cachan.fr>
+ * @author Thibaud Ehret <ehret.thibaud@gmail.com>
  **/
 
 #include <iostream>

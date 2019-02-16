@@ -1,6 +1,6 @@
 # C source code
 CSRC	= Utilities/iio.c \
-		mt19937ar.c
+		  Utilities/mt19937ar.c
 # C++ source code
 CXXSRC	= main.cpp \
 		vbm3d.cpp \
@@ -29,10 +29,10 @@ COPT	= -O3 -ftree-vectorize -funroll-loops
 CXXOPT	= $(COPT)
 
 # C compilation flags
-CFLAGS	= $(COPT) -Wall -Wextra \
+CFLAGS	= $(COPT) \
 	-Wno-write-strings -ansi -std=c99# -g
 # C++ compilation flags
-CXXFLAGS	= $(CXXOPT) -Wall -Wextra \
+CXXFLAGS	= $(CXXOPT) \
 	-Wno-write-strings -Wno-deprecated -ansi -std=c++11# -g -fsanitize=address
 # link flags
 LDFLAGS	= -lpng -lm -lfftw3f -ltiff -ljpeg# -fsanitize=address

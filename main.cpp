@@ -1,3 +1,15 @@
+/*
+ * Copyright (c) 2018, Thibaud Ehret <ehret.thibaud@gmail.com>
+ * All rights reserved.
+ *
+ * This program is free software: you can use, modify and/or
+ * redistribute it under the terms of the GNU General Public
+ * License as published by the Free Software Foundation, either
+ * version 3 of the License, or (at your option) any later
+ * version. You should have received a copy of this license along
+ * this program. If not, see <http://www.gnu.org/licenses/>.
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <iostream>
@@ -181,62 +193,60 @@ void initializeParameters_2(
 
 /**
  * @file   main.cpp
- * @brief  Main executable file. Do not use lib_fftw to
- *         process DCT.
- *
- * @author MARC LEBRUN  <marc.lebrun@cmla.ens-cachan.fr>
+ * @brief  Main executable file.
+ * @author Thibaud Ehret  <ehret.thibaud@gmail.com>
  */
 
 
 int main(int argc, char **argv)
 {
     //! Check if there is the right call for the algorithm
-
 	using std::string;
-	const string  input_path = clo_option("-i"    , ""              , "< input sequence");
-	const string  inbsc_path = clo_option("-b"    , ""              , "< input basic sequence");
-	const string  noisy_path = clo_option("-nisy" , "nisy_%03d.tiff" , "> noisy sequence");
-	const string  final_path = clo_option("-deno" , "deno_%03d.tiff" , "> denoised sequence");
-	const string  basic_path = clo_option("-bsic" , "bsic_%03d.tiff" , "> basic denoised sequence");
-	const string   diff_path = clo_option("-diff" , "diff_%03d.tiff" , "> difference sequence");
-	const string   meas_path = clo_option("-meas" , "measure.txt"   , "> text file containing the measures");
+	const string  input_path = clo_option("-i"    , ""               , "< Input sequence");
+	const string  inbsc_path = clo_option("-b"    , ""               , "< Input basic sequence (it will replace the basic estimation step)");
+	const string  noisy_path = clo_option("-nisy" , "noisy_%03d.tiff", "> Noisy sequence");
+	const string  final_path = clo_option("-deno" , "deno_%03d.tiff" , "> Denoised sequence");
+	const string  basic_path = clo_option("-bsic" , "basic_%03d.tiff", "> Basic denoised sequence");
+	const string   diff_path = clo_option("-diff" , "diff_%03d.tiff" , "> Difference sequence");
+	const string   meas_path = clo_option("-meas" , "measure.txt"    , "> Text file containing the measures (only reliable when -add is set to true)");
 #ifdef OPTICALFLOW
-	const string   flow_path = clo_option("-flow" , "flow_%03d.flo" , "< optical flow ");
+	const string   flow_path = clo_option("-flow" , "flow_%03d.flo"  , "< Optical flow ");
 #endif
 
-	const unsigned firstFrame = clo_option("-f", 0, "first frame");
-	const unsigned lastFrame  = clo_option("-l", 0, "last frame");
-	const unsigned frameStep  = clo_option("-s", 1, "frame step");
+	const unsigned firstFrame = clo_option("-f", 0, "< Index of the first frame");
+	const unsigned lastFrame  = clo_option("-l", 0, "< Index of the last frame");
+	const unsigned frameStep  = clo_option("-s", 1, "< Frame step");
 
 	//! General parameters
-	const float fSigma = clo_option("-sigma", 0.f, "Add noise of standard deviation sigma");
-	const bool addnoise  = (bool) clo_option("-add", true, "< add noise");
-	const bool verbose  = (bool) clo_option("-verbose"     , true , "> verbose output");
+	const float fSigma = clo_option("-sigma", 0.f, "< Noise standard deviation");
+	const bool addnoise  = (bool) clo_option("-add", true, "< Add noise");
+	const bool verbose  = (bool) clo_option("-verbose", true , "> Verbose output");
 
 	//! VBM3D parameters
-	const int kHard = clo_option("-kHard", -1 , "< ");
-	const int ktHard = clo_option("-ktHard", -1 , "< ");
-	const int NfHard = clo_option("-NfHard", -1 , "< ");
-	const int NsHard = clo_option("-NsHard", -1 , "< ");
-	const int NprHard = clo_option("-NprHard", -1 , "< ");
-	const int NbHard = clo_option("-NbHard", -1 , "< ");
-	const int pHard = clo_option("-pHard", -1 , "< ");
-	const int NHard = clo_option("-NHard", -1 , "< ");
-	const int dHard = clo_option("-dHard", -1 , "< ");
-	const float tauHard = clo_option("-tauHard", -1. , "< ");
-	const int kWien = clo_option("-kWien", -1 , "< ");
-	const int ktWien = clo_option("-ktWien", -1 , "< ");
-	const int NfWien = clo_option("-NfWien", -1 , "< ");
-	const int NsWien = clo_option("-NsWien", -1 , "< ");
-	const int NprWien = clo_option("-NprWien", -1 , "< ");
-	const int NbWien = clo_option("-NbWien", -1 , "< ");
-	const int pWien = clo_option("-pWien", -1 , "< ");
-	const int NWien = clo_option("-NWien", -1 , "< ");
-	const int dWien = clo_option("-dWien", -1 , "< ");
-	const float tauWien = clo_option("-tauWien", -1. , "< ");
+	const int kHard = clo_option("-kHard", -1,          "< Spatial size of the patch (first pass)");
+	const int ktHard = clo_option("-ktHard", -1,        "< Temporal size of the patch (first pass)");
+	const int NfHard = clo_option("-NfHard", -1,        "< Number frames used before and after the reference (first pass)");
+	const int NsHard = clo_option("-NsHard", -1,        "< Size of the searhc region in the reference frame (first pass)");
+	const int NprHard = clo_option("-NprHard", -1,      "< Size of the search region in the other frames (first pass)");
+	const int NbHard = clo_option("-NbHard", -1,        "< Maximum number of neighbors per frame (first pass)");
+	const int pHard = clo_option("-pHard", -1,          "< Step between each patch (first pass)");
+	const int NHard = clo_option("-NHard", -1,          "< Maximum number of neighbors (first pass)");
+	const int dHard = clo_option("-dHard", -1,          "< Bias toward center patches (first pass)");
+	const float tauHard = clo_option("-tauHard", -1.,   "< Distance threshold on neighbors (first pass)");
+	const float lambda3D = clo_option("-lambda3d", -1., "< Coefficient threhsold (first pass)");
 
-	const float lambda3D = clo_option("-lambda3d", -1. , "< ");
-	const unsigned color_space  =  (unsigned) clo_option("-color", 0 , "< color space");
+	const int kWien = clo_option("-kWien", -1,          "< Spatial size of the patch (second pass)");
+	const int ktWien = clo_option("-ktWien", -1,        "< Temporal size of the patch (second pass)");
+	const int NfWien = clo_option("-NfWien", -1,        "< Number frames used before and after the reference (second pass)");
+	const int NsWien = clo_option("-NsWien", -1,        "< Size of the searhc region in the reference frame (second pass)");
+	const int NprWien = clo_option("-NprWien", -1,      "< Size of the search region in the other frames (second pass)");
+	const int NbWien = clo_option("-NbWien", -1,        "< Maximum number of neighbors per frame (second pass)");
+	const int pWien = clo_option("-pWien", -1,          "< Step between each patch (second pass)");
+	const int NWien = clo_option("-NWien", -1,          "< Maximum number of neighbors (second pass)");
+	const int dWien = clo_option("-dWien", -1,          "< Bias toward center patches (second pass)");
+	const float tauWien = clo_option("-tauWien", -1.,   "< Distance threshold on neighbors (second pass)");
+
+	const unsigned color_space  =  (unsigned) clo_option("-color", 0 , "< Set the color space (0 correspond to RGB->OPP, any other value keeps RGB for now)");
 
 	//! Check inputs
 	if (input_path == "")
@@ -247,39 +257,39 @@ int main(int argc, char **argv)
 	}
 
 	//! Variables initialization
-	const unsigned T_2D_hard  = (unsigned) clo_option("-T2dh", NONE , "< tau_2D_hard");
+	const unsigned T_2D_hard  = (unsigned) clo_option("-T2dh", NONE , "< 2D transform (first pass), choice is 4 (dct) or 5 (bior)");
 	if (T_2D_hard != NONE && T_2D_hard != DCT && T_2D_hard != BIOR)
 	{
 		cout << "T_2d_hard is not known. Choice is :" << endl;
-		cout << " -dct (" << DCT << ")" << endl;
-		cout << " -bior (" << BIOR << ")" << endl;
+		cout << " dct (" << DCT << ")" << endl;
+		cout << " bior (" << BIOR << ")" << endl;
 		return EXIT_FAILURE;
 	}
 
-	const unsigned T_2D_wien  = (unsigned) clo_option("-T2dw", NONE , "< tau_2D_wien");
+	const unsigned T_2D_wien  = (unsigned) clo_option("-T2dw", NONE , "< 2D transform (second pass), choice is 4 (dct) or 5 (bior)");
 	if (T_2D_wien != NONE && T_2D_wien != DCT && T_2D_wien != BIOR)
 	{
 		cout << "T_2d_wien is not known. Choice is :" << endl;
-		cout << " -dct (" << DCT << ")" << endl;
-		cout << " -bior (" << BIOR << ")" << endl;
+		cout << " dct (" << DCT << ")" << endl;
+		cout << " bior (" << BIOR << ")" << endl;
 		return EXIT_FAILURE;
 	};
 
-	const unsigned T_3D_hard  = (unsigned) clo_option("-T3dh", NONE , "< tau_3D_hard");
+	const unsigned T_3D_hard  = (unsigned) clo_option("-T3dh", NONE , "< 1D transform (first pass), choice is 6 (hadamard) or 7 (haar)");
 	if (T_3D_hard != NONE && T_3D_hard != HAAR && T_3D_hard != HADAMARD)
 	{
 		cout << "T_3d_hard is not known. Choice is :" << endl;
-		cout << " -haar (" << HAAR << ")" << endl;
-		cout << " -hadamard (" << HADAMARD << ")" << endl;
+		cout << " haar (" << HAAR << ")" << endl;
+		cout << " hadamard (" << HADAMARD << ")" << endl;
 		return EXIT_FAILURE;
 	}
 
-	const unsigned T_3D_wien  = (unsigned) clo_option("-T3dw", NONE , "< tau_3D_wien");
+	const unsigned T_3D_wien  = (unsigned) clo_option("-T3dw", NONE , "< 1D transform (first pass), choice is 6 (hadamard) or 7 (haar)");
 	if (T_3D_wien != NONE && T_3D_wien != HAAR && T_3D_wien != HADAMARD)
 	{
 		cout << "T_3d_wien is not known. Choice is :" << endl;
-		cout << " -haar (" << HAAR << ")" << endl;
-		cout << " -hadamard (" << HADAMARD << ")" << endl;
+		cout << " haar (" << HAAR << ")" << endl;
+		cout << " hadamard (" << HADAMARD << ")" << endl;
 		return EXIT_FAILURE;
 	};
 

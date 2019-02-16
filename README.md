@@ -12,34 +12,38 @@ This source code provides an implementation of VBM3D developped in "Dabov, Kosta
 Alessandro Foi, and Karen Egiazarian. "Video denoising by sparse 3D transform-domain
 collaborative filtering." 2007 15th European Signal Processing Conference. IEEE, 2007".
 
-This code is part of an IPOL (http://www.ipol.im/) publication. Plase cite it
+This code is part of an [IPOL](http://www.ipol.im/) publication. Plase cite it
 if you use this code as part of your research. (The article is not already published 
 at this time)
 It is based on Marc Lebrun's code for the image denoising version of this algorithm (BM3D)
-available on the BM3D IPOL page (http://www.ipol.im/pub/art/2012/l-bm3d/).
+available on [the BM3D IPOL page](http://www.ipol.im/pub/art/2012/l-bm3d/).
 
 COMPILATION
 -----------
 
 The code is compilable on Unix/Linux and hopefully on Mac OS (not tested!). 
 
-Compilation: requires the make program.
+**Compilation:** requires the make program.
 
-Dependencies: FFTW3 and OpenMP (optional). 
-For image i/o we use Enric Meinhardt's iio (https://github.com/mnhrdt/iio),
+**Dependencies:** FFTW3 and OpenMP [optional]. 
+For image i/o we use [Enric Meinhardt's iio](https://github.com/mnhrdt/iio),
 which requires libpng, libtiff and libjpeg.
  
 Compile the source code using make.
 
 UNIX/LINUX/MAC:
+```
 $ make
+```
 
 Binaries will be created in the current folder.
 
 NOTE: By default, the code is compiled with OpenMP multithreaded
 parallelization disabled. If your system supports it you can activate it 
 by specifying during the compilation with:
+```
 $ make OMP=1
+``` 
 The code will then use the maximum number of thread available on your machine (up to 32). 
 This can be reduced by changing the maximum number of threads allowed in lines 126 and 127 
 of `vbm3d.cpp`.
@@ -50,11 +54,15 @@ USAGE
 The following commands have to be run from the current folder:
 
 List all available options:</br>
+```
 $ ./VBM3Ddenoising --help
+```
 
 While being a video denoising algorithm, the method takes as input the frames of the video 
 and not an actual video. The frames can be extracted using ffmpeg on linux. For example: 
+```
 $ ffmpeg -i video.mp4 video/i%04d.png
+```
 
 There is only four mandatory input arguments:
 * `-i` the input sequence
@@ -77,7 +85,9 @@ video/i0008.png
 video/i0009.png
 
 The command should be 
+```
 $ ./VBM3Ddenoising -i video/i%04d.png -f 0 -l 9
+```
 
 -----
 

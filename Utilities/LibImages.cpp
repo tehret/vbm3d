@@ -18,7 +18,6 @@
  **/
 
 #include "LibImages.h"
-#include "io_png.h"
 #include "Utilities.h"
 #include "mt19937ar.h"
 
@@ -55,8 +54,6 @@ int loadImage(
 	if (p_verbose) cout << endl << "Read input image...";
 
 	float *imTmp = NULL;
-	//size_t w, h, c;
-	//imTmp = read_png_f32(p_name, &w, &h, &c);
 	int w, h, c;
 	imTmp =  iio_read_image_float_vec(p_name, &w, &h, &c);
 
