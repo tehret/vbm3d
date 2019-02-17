@@ -107,9 +107,9 @@ This project contains the following source files:
 	                          src/Utilities/iio.c
 	image container:          src/Utilities/LibImages.h
 	                          src/Utilities/LibImages.cpp
-	image container:          src/Utilities/LibVideoT.hpp
+	video container:          src/Utilities/LibVideoT.hpp
 	                          src/Utilities/LibVideoT.cpp
-	random number genernator: src/Utilities/mt19937ar.h
+	random number generator:  src/Utilities/mt19937ar.h
 	                          src/Utilities/mt19937ar.c
 ```
 
