@@ -57,6 +57,9 @@ MS_ARGS="-c ${PAR_PYR}"
 rm -r noisy
 rm -r levels
 rm -r denoised
+mkdir noisy
+mkdir levels
+mkdir denoised
 
 $PATH_MULTISCALE/addnoise -i ${INPUT} -sigma $NOISE -f ${FIRST} -l ${LAST}
 
