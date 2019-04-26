@@ -27,7 +27,7 @@ NOISE=$2
 OUT=$3
 OUTPUT=$4
 DEN_ARGS=$5
-LEVELS=-1
+LEVELS=2
 FIRST=1
 LAST=150
 R_PYR=2   
@@ -50,34 +50,15 @@ if [ -n "${10}" ]; then
     PAR_PYR=${10}
 fi
 
-# determine the levels based on the image size
-if [ $LEVELS -eq -1 ]; then
-    PIXELS=$(./num_pixels $INPUT)
-    echo $PIXELS
-    if [ ${PIXELS} -lt 500000 ]; then
-        LEVELS=1
-    elif [ ${PIXELS} -lt 2000000 ]; then
-        LEVELS=2
-    elif [ ${PIXELS} -lt 8000000 ]; then
-        LEVELS=3
-    else
-        LEVELS=4
-    fi
-    echo "Scales: $LEVELS (auto)"
-else
-    echo "Scales: $LEVELS (requested)"
-fi
-
-
 DEC_ARGS="-r ${R_PYR}"
 MS_ARGS="-c ${PAR_PYR}"
 
 # Clean noisy
-rm noisy/*
-rm levels/*
+rm -r noisy
+rm -r levels
+rm -r denoised
 
-$PATH_MULTISCALE/addnoise -i ${INPUT} -sigma $NOISE -f ${FIRST} -l ${LAST} -s $LEVELS # Produces noisy_%04d.tiff
-#$PATH_MULTISCALE/addnoise -i ${INPUT} -sigma 0 -f ${FIRST} -l ${LAST} -s $LEVELS # Produces noisy_%04d.tiff
+$PATH_MULTISCALE/addnoise -i ${INPUT} -sigma $NOISE -f ${FIRST} -l ${LAST}
 
 for ((frame=FIRST; frame<=LAST; ++frame))
 do
@@ -87,7 +68,7 @@ done
 for ((lvl=LEVELS-1; lvl>=0; --lvl))
 do
     sigma=$(bc <<< "scale=2; $NOISE / ${R_PYR}^$lvl")
-    python denoise_vbm3d.py levels/ denoised/ level_${lvl}_\*.tiff --sigma $sigma $DEN_ARGS
+    ./VBM3Ddenoising -i levels/level_${lvl}_%04d.tiff -deno denoised/level_${lvl}_%04d.tiff -f ${FIRST} -l ${LAST} -add false --sigma $sigma $DEN_ARGS
 done
 
 wait
@@ -97,6 +78,8 @@ do
 done
 
 # Copy noisy to ouput folder
-mv noisy/* $OUT
+mv noisy $OUT
+# Copy noisy to ouput folder
+mv levels $OUT
 # Copy first scale to output folder
-mv denoised/level_0_* $OUT
+mv denoised $OUT
