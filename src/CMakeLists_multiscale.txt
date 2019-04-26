@@ -1,0 +1,38 @@
+project(VideoMultiscaler)
+
+message(STATUS "Configuring main project: " ${CMAKE_PROJECT_NAME})
+
+set(PROJECT_VERSION_MAJOR  1)
+set(PROJECT_VERSION_MINOR  0)
+set(PROJECT_VERSION_PATCH  0)
+
+set(PROJECT_VERSION "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH}"
+    CACHE INTERNAL "The project version.")
+
+###############################################################################
+
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -ggdb")
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE}")
+
+set(CMAKE_BUILD_TYPE Release)
+
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -lfftw3 -lfftw3f -g")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -lfftw3 -lfftw3f -O6 -w -s -ffast-math -fomit-frame-pointer -fstrength-reduce")
+
+###############################################################################
+
+cmake_minimum_required(VERSION 2.8.2)
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/cmake/modules/")
+#set(CMAKE_VERBOSE_MAKEFILE ON)
+
+###############################################################################
+
+find_package (TIFF REQUIRED)
+find_package (JPEG REQUIRED)
+find_package (PNG REQUIRED)
+include_directories (PUBLIC ${TIFF_INCLUDE_DIR} PUBLIC ${JPEG_INCLUDE_DIR} PUBLIC ${PNG_INCLUDE_DIRS})
+
+###############################################################################
+
+add_subdirectory(src)
+add_subdirectory(src/multiscaler-master)

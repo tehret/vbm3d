@@ -1,0 +1,3 @@
+[submodule "src/multiscaler"]
+	path = src/multiscaler
+	url = https://github.com/npd/multiscaler.git
