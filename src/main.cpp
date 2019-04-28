@@ -107,9 +107,19 @@ void initializeParameters_1(
 		prms.lambda3D = lambda3D;
 
 	if(T_2D == NONE)
-		prms.T_2D = DCT;
+    {
+        if(prms.k == 8)
+            prms.T_2D = BIOR;
+        else
+            prms.T_2D = DCT;
+    }
 	else
-		prms.T_2D = T_2D;
+    {
+        if(prms.k == 8)
+            prms.T_2D = T_2D;
+        else
+            prms.T_2D = DCT;
+    }
 
 	if(T_3D == NONE)
 		prms.T_3D = HAAR;
@@ -184,7 +194,12 @@ void initializeParameters_2(
 	if(T_2D == NONE)
 		prms.T_2D = DCT;
 	else
-		prms.T_2D = T_2D;
+    {
+        if(prms.k == 8)
+            prms.T_2D = T_2D;
+        else
+            prms.T_2D = DCT;
+    }
 
 	if(T_3D == NONE)
 		prms.T_3D = HAAR;

@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2011, Marc Lebrun <marc.lebrun@cmla.ens-cachan.fr>
+ * Modified  (c) 2019, Thibaud Ehret <ehret.thibaud@gmail.com>
  * All rights reserved.
  *
  * This program is free software: you can use, modify and/or
@@ -23,6 +24,8 @@
 
 #include <numeric>
 
+#define MATLAB
+
 using namespace std;
 
 /**
@@ -40,6 +43,7 @@ using namespace std;
  *
  * @return none.
  **/
+#ifndef MATLAB
 void bior_2d_forward(
     Video<float> const& input
 ,   vector<float> &output
@@ -117,88 +121,66 @@ void bior_2d_forward(
         N_2 /= 2;
     }
 }
-
-void bior_2d_forward_test(
-    vector<float> const& input
+#else
+void bior_2d_forward(
+    Video<float> const& input
 ,   vector<float> &output
 ,   const unsigned N
-,   const unsigned d_i
-,   const unsigned r_i
+,   const unsigned x
+,   const unsigned y
+,   const unsigned t
+,   const unsigned c
 ,   const unsigned d_o
 ,   vector<float> const& lpd
 ,   vector<float> const& hpd
-,   vector<float> &tmp
-,   vector<unsigned> &ind_per
 ){
-    //! Initializing output
+    assert(N == 8);
+
+    // Bior1.5 basis extracted from MATLAB
+    std::vector<float> bior_basis(8*8);
+    bior_basis[0 + 8*0] =  0.353553390593274; bior_basis[1 + 8*0] =  0.353553390593274; bior_basis[2 + 8*0] =  0.353553390593274; bior_basis[3 + 8*0] =  0.353553390593274; bior_basis[4 + 8*0] =  0.353553390593274; bior_basis[5 + 8*0] =  0.353553390593274; bior_basis[6 + 8*0] =  0.353553390593274; bior_basis[7 + 8*0] =  0.353553390593274;
+    bior_basis[0 + 8*1] =  0.219417649252501; bior_basis[1 + 8*1] =  0.449283757993216; bior_basis[2 + 8*1] =  0.449283757993216; bior_basis[3 + 8*1] =  0.219417649252501; bior_basis[4 + 8*1] = -0.219417649252501; bior_basis[5 + 8*1] = -0.449283757993216; bior_basis[6 + 8*1] = -0.449283757993216; bior_basis[7 + 8*1] = -0.219417649252501;
+    bior_basis[0 + 8*2] =  0.569359398342846; bior_basis[1 + 8*2] =  0.402347308162278; bior_basis[2 + 8*2] = -0.402347308162278; bior_basis[3 + 8*2] = -0.569359398342846; bior_basis[4 + 8*2] = -0.083506045090284; bior_basis[5 + 8*2] =  0.083506045090284; bior_basis[6 + 8*2] = -0.083506045090284; bior_basis[7 + 8*2] =  0.083506045090284;
+    bior_basis[0 + 8*3] = -0.083506045090284; bior_basis[1 + 8*3] =  0.083506045090284; bior_basis[2 + 8*3] = -0.083506045090284; bior_basis[3 + 8*3] =  0.083506045090284; bior_basis[4 + 8*3] =  0.569359398342846; bior_basis[5 + 8*3] =  0.402347308162278; bior_basis[6 + 8*3] = -0.402347308162278; bior_basis[7 + 8*3] = -0.569359398342846;
+    bior_basis[0 + 8*4] =  0.707106781186547; bior_basis[1 + 8*4] = -0.707106781186547; bior_basis[2 + 8*4] =                0.0; bior_basis[3 + 8*4] =                0.0; bior_basis[4 + 8*4] =                0.0; bior_basis[5 + 8*4] =                0.0; bior_basis[6 + 8*4] =                0.0; bior_basis[7 + 8*4] =                0.0;
+    bior_basis[0 + 8*5] =                0.0; bior_basis[1 + 8*5] =                0.0; bior_basis[2 + 8*5] =  0.707106781186547; bior_basis[3 + 8*5] = -0.707106781186547; bior_basis[4 + 8*5] =                0.0; bior_basis[5 + 8*5] =                0.0; bior_basis[6 + 8*5] =                0.0; bior_basis[7 + 8*5] =                0.0;
+    bior_basis[0 + 8*6] =                0.0; bior_basis[1 + 8*6] =                0.0; bior_basis[2 + 8*6] =                0.0; bior_basis[3 + 8*6] =                0.0; bior_basis[4 + 8*6] =  0.707106781186547; bior_basis[5 + 8*6] = -0.707106781186547; bior_basis[6 + 8*6] =                0.0; bior_basis[7 + 8*6] =                0.0;
+    bior_basis[0 + 8*7] =                0.0; bior_basis[1 + 8*7] =                0.0; bior_basis[2 + 8*7] =                0.0; bior_basis[3 + 8*7] =                0.0; bior_basis[4 + 8*7] =                0.0; bior_basis[5 + 8*7] =                0.0; bior_basis[6 + 8*7] =  0.707106781186547; bior_basis[7 + 8*7] = -0.707106781186547;
+
+    //! Initializing
+    std::vector<float> temp(8*8);
+    std::vector<float> temp2(8*8);
+
     for (unsigned i = 0; i < N; i++)
         for (unsigned j = 0; j < N; j++)
-            output[i * N + j + d_o] = input[i * r_i + j + d_i];
+            temp[i * N + j] = input(x + j, y + i, t, c);
 
-    const unsigned iter_max = log2(N);
-    unsigned N_1 = N;
-    unsigned N_2 = N / 2;
-    const unsigned S_1 = lpd.size();
-    const unsigned S_2 = S_1 / 2 - 1;
-
-    for (unsigned iter = 0; iter < iter_max; iter++)
+    // First pass
+    for (unsigned i = 0; i < N; i++)
+    for (unsigned j = 0; j < N; j++)
     {
-        //! Periodic extension index initialization
-//        vector<float> tmp(N_1 + 2 * S_2);
-//        vector<unsigned> ind_per(N_1 + 2 * S_2);
-        per_ext_ind(ind_per, N_1, S_2);
-
-        //! Implementing row filtering
-        for (unsigned i = 0; i < N_1; i++)
-        {
-            //! Periodic extension of the signal in row
-            for (unsigned j = 0; j < tmp.size(); j++)
-                tmp[j] = output[d_o + i * N + ind_per[j]];
-
-            //! Low and High frequencies filtering
-            for (unsigned j = 0; j < N_2; j++)
-            {
-                float v_l = 0.0f, v_h = 0.0f;
-                for (unsigned k = 0; k < S_1; k++)
-                {
-                    v_l += tmp[k + j * 2] * lpd[k];
-                    v_h += tmp[k + j * 2] * hpd[k];
-                }
-                output[d_o + i * N + j] = v_l;
-                output[d_o + i * N + j + N_2] = v_h;
-//                output[d_o + i * N + j] = inner_product(tmp.begin() + j * 2, tmp.begin() + j * 2 + S_1, lpd.begin(), 0.f);
-//                output[d_o + i * N + j + N_2] = inner_product(tmp.begin() + j * 2, tmp.begin() + j * 2 + S_1, hpd.begin(), 0.f);
-            }
-        }
-
-        //! Implementing column filtering
-        for (unsigned j = 0; j < N_1; j++)
-        {
-            //! Periodic extension of the signal in column
-            for (unsigned i = 0; i < tmp.size(); i++)
-                tmp[i] = output[d_o + j + ind_per[i] * N];
-
-            //! Low and High frequencies filtering
-            for (unsigned i = 0; i < N_2; i++)
-            {
-                float v_l = 0.0f, v_h = 0.0f;
-                for (unsigned k = 0; k < S_1; k++)
-                {
-                    v_l += tmp[k + i * 2] * lpd[k];
-                    v_h += tmp[k + i * 2] * hpd[k];
-                }
-                output[d_o + j + i * N] = v_l;
-                output[d_o + j + (i + N_2) * N] = v_h;
-//                output[d_o + j + i * N] = inner_product(tmp.begin() + i * 2, tmp.begin() + i * 2 + S_1, lpd.begin(), 0.f);
-//                output[d_o + j + (i + N_2) * N] = inner_product(tmp.begin() + i * 2, tmp.begin() + i * 2 + S_1, hpd.begin(), 0.f);
-            }
-        }
-
-        //! Sizes update
-        N_1 /= 2;
-        N_2 /= 2;
+        float mult = 0.;
+        for (unsigned k = 0; k < N; k++)
+            mult += temp[i * N + k]*bior_basis[k + j * N];
+        temp2[i * N + j] = mult;
     }
+
+    // Second pass
+    for (unsigned i = 0; i < N; i++)
+    for (unsigned j = 0; j < N; j++)
+    {
+        float mult = 0.;
+        for (unsigned k = 0; k < N; k++)
+            mult += temp2[k * N + i]*bior_basis[k + j * N];
+        temp[i * N + j] = mult;
+    }
+
+    for (unsigned i = 0; i < N; i++)
+        for (unsigned j = 0; j < N; j++)
+            output[i * N + j + d_o] = temp[i * N + j];
 }
+#endif
+
 
 /**
  * @brief Compute a full 2D Bior 1.5 spline wavelet inverse (normalized)
@@ -213,6 +195,7 @@ void bior_2d_forward_test(
  *
  * @return none.
  **/
+#ifndef MATLAB
 void bior_2d_inverse(
     vector<float> &signal
 ,   const unsigned N
@@ -283,6 +266,62 @@ void bior_2d_inverse(
         N_2 *= 2;
     }
 }
+#else
+void bior_2d_inverse(
+    vector<float> &signal
+,   const unsigned N
+,   const unsigned d_s
+,   vector<float> const& lpr
+,   vector<float> const& hpr
+){
+    assert(N == 8);
+
+    // Bior1.5 basis extracted from MATLAB
+    std::vector<float> bior_basis(8*8);
+    bior_basis[0 + 8*0] = 0.353553390593274; bior_basis[1 + 8*0] =  0.353553390593274; bior_basis[2 + 8*0] =  0.5; bior_basis[3 + 8*0] =  0.0; bior_basis[4 + 8*0] =  0.707106781186547; bior_basis[5 + 8*0] = -0.121533978016438; bior_basis[6 + 8*0] =                0.0; bior_basis[7 + 8*0] =  0.121533978016438;
+    bior_basis[0 + 8*1] = 0.353553390593274; bior_basis[1 + 8*1] =  0.353553390593274; bior_basis[2 + 8*1] =  0.5; bior_basis[3 + 8*1] = -0.0; bior_basis[4 + 8*1] = -0.707106781186547; bior_basis[5 + 8*1] = -0.121533978016438; bior_basis[6 + 8*1] =                0.0; bior_basis[7 + 8*1] =  0.121533978016438;
+    bior_basis[0 + 8*2] = 0.353553390593274; bior_basis[1 + 8*2] =  0.353553390593274; bior_basis[2 + 8*2] = -0.5; bior_basis[3 + 8*2] = -0.0; bior_basis[4 + 8*2] =  0.121533978016438; bior_basis[5 + 8*2] =  0.707106781186548; bior_basis[6 + 8*2] = -0.121533978016438; bior_basis[7 + 8*2] =                0.0;
+    bior_basis[0 + 8*3] = 0.353553390593274; bior_basis[1 + 8*3] =  0.353553390593274; bior_basis[2 + 8*3] = -0.5; bior_basis[3 + 8*3] =  0.0; bior_basis[4 + 8*3] =  0.121533978016438; bior_basis[5 + 8*3] = -0.707106781186548; bior_basis[6 + 8*3] = -0.121533978016438; bior_basis[7 + 8*3] =                0.0;
+    bior_basis[0 + 8*4] = 0.353553390593274; bior_basis[1 + 8*4] = -0.353553390593274; bior_basis[2 + 8*4] =  0.0; bior_basis[3 + 8*4] =  0.5; bior_basis[4 + 8*4] =                0.0; bior_basis[5 + 8*4] =  0.121533978016438; bior_basis[6 + 8*4] =  0.707106781186547; bior_basis[7 + 8*4] = -0.121533978016438;
+    bior_basis[0 + 8*5] = 0.353553390593274; bior_basis[1 + 8*5] = -0.353553390593274; bior_basis[2 + 8*5] =  0.0; bior_basis[3 + 8*5] =  0.5; bior_basis[4 + 8*5] =                0.0; bior_basis[5 + 8*5] =  0.121533978016438; bior_basis[6 + 8*5] = -0.707106781186547; bior_basis[7 + 8*5] = -0.121533978016438;
+    bior_basis[0 + 8*6] = 0.353553390593274; bior_basis[1 + 8*6] = -0.353553390593274; bior_basis[2 + 8*6] =  0.0; bior_basis[3 + 8*6] = -0.5; bior_basis[4 + 8*6] = -0.121533978016438; bior_basis[5 + 8*6] =                0.0; bior_basis[6 + 8*6] =  0.121533978016438; bior_basis[7 + 8*6] =  0.707106781186547;
+    bior_basis[0 + 8*7] = 0.353553390593274; bior_basis[1 + 8*7] = -0.353553390593274; bior_basis[2 + 8*7] =  0.0; bior_basis[3 + 8*7] = -0.5; bior_basis[4 + 8*7] = -0.121533978016438; bior_basis[5 + 8*7] =                0.0; bior_basis[6 + 8*7] =  0.121533978016438; bior_basis[7 + 8*7] = -0.707106781186547;
+
+    //! Initializing
+    std::vector<float> temp(8*8);
+    std::vector<float> temp2(8*8);
+
+    for (unsigned i = 0; i < N; i++)
+        for (unsigned j = 0; j < N; j++)
+            temp[i * N + j] = signal[d_s + i + j * N];
+
+    // First pass
+    for (unsigned i = 0; i < N; i++)
+    for (unsigned j = 0; j < N; j++)
+    {
+        float mult = 0.;
+        for (unsigned k = 0; k < N; k++)
+            mult += temp[i * N + k]*bior_basis[k + j * N];
+        temp2[i * N + j] = mult;
+    }
+
+    // Second pass
+    for (unsigned i = 0; i < N; i++)
+    for (unsigned j = 0; j < N; j++)
+    {
+        float mult = 0.;
+        for (unsigned k = 0; k < N; k++)
+            mult += temp2[k * N + i]*bior_basis[k + j * N];
+        temp[i * N + j] = mult;
+    }
+
+    for (unsigned i = 0; i < N; i++)
+        for (unsigned j = 0; j < N; j++)
+            signal[j * N + i + d_s] = temp[i * N + j];
+}
+#endif
+
+
 
 /**
  * @brief Initialize forward and backward low and high filter
