@@ -71,7 +71,7 @@ done
 for ((lvl=LEVELS-1; lvl>=0; --lvl))
 do
     sigma=$(bc <<< "scale=2; $NOISE / ${R_PYR}^$lvl")
-    ./VBM3Ddenoising -i levels/level_${lvl}_%04d.tiff -deno denoised/level_${lvl}_%04d.tiff -f ${FIRST} -l ${LAST} -add false --sigma $sigma $DEN_ARGS
+    ./VBM3Ddenoising -i levels/level_${lvl}_%04d.tiff -deno denoised/level_${lvl}_%04d.tiff -f ${FIRST} -l ${LAST} -add false -sigma $sigma $DEN_ARGS
 done
 
 wait
