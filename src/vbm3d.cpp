@@ -917,8 +917,8 @@ int computeSimilarPatches(
 	for(unsigned nextFrame = 0; nextFrame < finalFrame; ++nextFrame)
 	{
         vid.sz.coords(preIndex, px, py, pt, pc);
-        px = px + flow(px + prms.k/2,py + prms.k/2,pt,0);
-        py = py + flow(px + prms.k/2,py + prms.k/2,pt,1);
+        px = px + fflow(px + prms.k/2,py + prms.k/2,pt,0);
+        py = py + fflow(px + prms.k/2,py + prms.k/2,pt,1);
         preIndex = vid.sz.index(px, py, pt + 1, pc);
         localSearch(preIndex, pidx, prms.Npr, prms.k, prms.kt, prms.Nb, prms.d, vid, alreadySeen, bestPatches);
 	}
@@ -929,8 +929,8 @@ int computeSimilarPatches(
 	for(unsigned nextFrame = 0; nextFrame < finalFrame; ++nextFrame)
 	{
         vid.sz.coords(preIndex, px, py, pt, pc);
-        px = px + std::round(flow(px + prms.k/2,py + prms.k/2,pt+1,0));
-        py = py + std::round(flow(px + prms.k/2,py + prms.k/2,pt+1,1));
+        px = px + std::round(bflow(px + prms.k/2,py + prms.k/2,pt+1,0));
+        py = py + std::round(bflow(px + prms.k/2,py + prms.k/2,pt+1,1));
         preIndex = vid.sz.index(px, py, pt - 1, pc);
         localSearch(preIndex, pidx, prms.Npr, prms.k, prms.kt, prms.Nb, prms.d, vid, alreadySeen, bestPatches);
 	}
