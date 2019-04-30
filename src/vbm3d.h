@@ -28,7 +28,8 @@ int run_vbm3d(
     const float sigma
 ,   Video<float> &img_noisy
 #ifdef OPTICALFLOW
-,   Video<float> &flow
+,   Video<float> &fflow
+,   Video<float> &bflow
 #endif
 ,   Video<float> &img_basic
 ,   Video<float> &img_denoised
@@ -42,7 +43,8 @@ void vbm3d_1st_step(
     const float sigma
 ,   Video<float> const& img_noisy
 #ifdef OPTICALFLOW
-,   Video<float> &flow
+,   Video<float> &fflow
+,   Video<float> &bflow
 #endif
 ,   Video<float> &img_basic
 ,   const Parameters& prms
@@ -61,7 +63,8 @@ void vbm3d_2nd_step(
 ,   Video<float> const& img_noisy
 ,   Video<float> const& img_basic
 #ifdef OPTICALFLOW
-,   Video<float> &flow
+,   Video<float> &fflow
+,   Video<float> &bflow
 #endif
 ,   Video<float> &img_denoised
 ,   const Parameters& prms
@@ -92,7 +95,8 @@ int computeSimilarPatches(
 ,	unsigned idx
 ,	const Video<float>& vid
 #ifdef OPTICALFLOW
-,   Video<float> &flow
+,   Video<float> &fflow
+,   Video<float> &bflow
 #endif
 ,	const Parameters& prms
 );

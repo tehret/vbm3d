@@ -108,9 +108,9 @@ void initializeParameters_1(
 
 	if(T_2D == NONE)
     {
-        if(prms.k == 8)
-            prms.T_2D = BIOR;
-        else
+        //if(prms.k == 8)
+        //    prms.T_2D = BIOR;
+        //else
             prms.T_2D = DCT;
     }
 	else
@@ -227,7 +227,8 @@ int main(int argc, char **argv)
 	const string   diff_path = clo_option("-diff" , "diff_%03d.tiff" , "> Difference sequence");
 	const string   meas_path = clo_option("-meas" , "measure.txt"    , "> Text file containing the measures (only reliable when -add is set to true)");
 #ifdef OPTICALFLOW
-	const string   flow_path = clo_option("-flow" , "flow_%03d.flo"  , "< Optical flow ");
+	const string  fflow_path = clo_option("-fflow", "flow_%03d.flo"  , "< Forward optical flow ");
+	const string  bflow_path = clo_option("-bflow", "flow_%03d.flo"  , "< Backward optical flow ");
 #endif
 
 	const unsigned firstFrame = clo_option("-f", 0, "< Index of the first frame");
@@ -319,7 +320,8 @@ int main(int argc, char **argv)
 	//! Declarations
 	Video<float> vid, vid_noisy, vid_basic, vid_denoised, vid_diff;
 #ifdef OPTICALFLOW
-	Video<float> flow;
+	Video<float> fflow;
+	Video<float> bflow;
 #endif
 
 	//! Load video
@@ -328,7 +330,8 @@ int main(int argc, char **argv)
 		vid_basic.loadVideo(inbsc_path, firstFrame, lastFrame, frameStep);
 
 #ifdef OPTICALFLOW
-	flow.loadVideo(flow_path, firstFrame, lastFrame-1, frameStep);
+	fflow.loadVideo(fflow_path, firstFrame, lastFrame-1, frameStep);
+	bflow.loadVideo(bflow_path, firstFrame+1, lastFrame, frameStep);
 #endif
 
 	vid_noisy.resize(vid.sz);
@@ -346,7 +349,7 @@ int main(int argc, char **argv)
 
 	//! Denoising
 #ifdef OPTICALFLOW
-	if (run_vbm3d(fSigma, vid_noisy, flow, vid_basic, vid_denoised, prms_1, prms_2, color_space)
+	if (run_vbm3d(fSigma, vid_noisy, fflow, bflow, vid_basic, vid_denoised, prms_1, prms_2, color_space)
 			!= EXIT_SUCCESS)
 		return EXIT_FAILURE;
 #else
