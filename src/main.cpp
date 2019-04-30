@@ -227,8 +227,8 @@ int main(int argc, char **argv)
 	const string   diff_path = clo_option("-diff" , "diff_%03d.tiff" , "> Difference sequence");
 	const string   meas_path = clo_option("-meas" , "measure.txt"    , "> Text file containing the measures (only reliable when -add is set to true)");
 #ifdef OPTICALFLOW
-	const string  fflow_path = clo_option("-fflow", "flow_%03d.flo"  , "< Forward optical flow ");
-	const string  bflow_path = clo_option("-bflow", "flow_%03d.flo"  , "< Backward optical flow ");
+	const string  fflow_path = clo_option("-fflow", ""  , "< Forward optical flow ");
+	const string  bflow_path = clo_option("-bflow", ""  , "< Backward optical flow ");
 #endif
 
 	const unsigned firstFrame = clo_option("-f", 0, "< Index of the first frame");
@@ -273,6 +273,14 @@ int main(int argc, char **argv)
 				argv[0], argv[0]);
 		return EXIT_FAILURE;
 	}
+#ifdef OPTICALFLOW
+    if (fflow_path == "" || bflow_path == "")
+	{
+		fprintf(stderr, "%s: no forward and backward flows.\nTry `%s --help' for more information.\n",
+				argv[0], argv[0]);
+		return EXIT_FAILURE;
+	}
+#endif
 
 	//! Variables initialization
 	const unsigned T_2D_hard  = (unsigned) clo_option("-T2dh", NONE , "< 2D transform (first pass), choice is 4 (dct) or 5 (bior)");
@@ -332,6 +340,15 @@ int main(int argc, char **argv)
 #ifdef OPTICALFLOW
 	fflow.loadFullFlow(fflow_path, firstFrame, lastFrame-1, frameStep);
 	bflow.loadFullFlow(bflow_path, firstFrame+1, lastFrame, frameStep);
+
+    // Check that all sizes are consistent
+    if(fflow.sz.width != bflow.sz.width || fflow.sz.width != vid.sz.width
+            || fflow.sz.height != bflow.sz.height || fflow.sz.height != vid.sz.height)
+    {
+		fprintf(stderr, "%s: Sizes (flows and video) are inconsistent.\nTry `%s --help' for more information.\n",
+				argv[0], argv[0]);
+		return EXIT_FAILURE;
+    }
 #endif
 
 	vid_noisy.resize(vid.sz);
