@@ -175,6 +175,8 @@ class Video
 		//! I/O
 		void loadVideo(const std::string i_pathToFiles, 
 		               unsigned i_firstFrame, unsigned i_lastFrame, unsigned i_frameStep = 1);
+		void loadFullFlow(const std::string i_pathToFiles, 
+		               unsigned i_firstFrame, unsigned i_lastFrame, unsigned i_frameStep = 1);
 		void saveVideo(const std::string i_pathToFiles, 
 		               unsigned i_firstFrame, unsigned i_frameStep = 1,
 		               T i_pmin = 0, T i_pmax = 255) const;

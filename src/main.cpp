@@ -62,7 +62,7 @@ void initializeParameters_1(
 	if(kt < 0)
 		prms.kt = 1;
 	else
-		prms.kt = kt;
+		prms.kt = std::min(kt, 2);
 
 	if(Nf < 0)
 		prms.Nf = 4;
@@ -151,7 +151,7 @@ void initializeParameters_2(
 	if(kt < 0)
 		prms.kt = 1;
 	else
-		prms.kt = kt;
+		prms.kt = std::min(kt,2);
 
 	if(Nf < 0)
 		prms.Nf = 4;
@@ -330,8 +330,8 @@ int main(int argc, char **argv)
 		vid_basic.loadVideo(inbsc_path, firstFrame, lastFrame, frameStep);
 
 #ifdef OPTICALFLOW
-	fflow.loadVideo(fflow_path, firstFrame, lastFrame-1, frameStep);
-	bflow.loadVideo(bflow_path, firstFrame+1, lastFrame, frameStep);
+	fflow.loadFullFlow(fflow_path, firstFrame, lastFrame-1, frameStep);
+	bflow.loadFullFlow(bflow_path, firstFrame+1, lastFrame, frameStep);
 #endif
 
 	vid_noisy.resize(vid.sz);

@@ -110,6 +110,65 @@ int loadImage(
 }
 
 /**
+ * @brief Load Optical Flow.
+ *
+ * @param p_name : name of the image to read;
+ * @param o_flow : vector which will contain the flow;
+ * @param o_imSize : will contain the size of the image;
+ * @param p_verbose : if true, print some informations.
+ *
+ * @return EXIT_SUCCESS if the image has been loaded, EXIT_FAILURE otherwise.
+ **/
+int loadFlow(
+	char* p_name
+,	std::vector<float> &o_flow
+,	ImageSize &o_imSize
+,	const bool p_verbose
+){
+	//! read input image
+	if (p_verbose) cout << endl << "Read input flow...";
+
+	float *imTmp = NULL;
+	int w, h, c;
+	imTmp =  iio_read_image_float_split(p_name, &w, &h, &c);
+
+	if(c != 2)
+	{
+		cout << "error :: File doesn't correspond to an optical flow" << endl;
+		return EXIT_FAILURE;
+	}
+
+	if (!imTmp) {
+		cout << "error :: " << p_name << " not found or not a correct flow file" << endl;
+		return EXIT_FAILURE;
+	}
+
+	if (p_verbose) cout << "done." << endl;
+
+	//! Some image informations
+	if (p_verbose) {
+		cout << "image size :" << endl;
+		cout << " - width          = " << w << endl;
+		cout << " - height         = " << h << endl;
+		cout << " - nb of channels = " << c << endl;
+	}
+
+	//! Initializations
+	o_imSize.width      = w;
+	o_imSize.height     = h;
+	o_imSize.nChannels  = c;
+	o_imSize.wh         = w * h;
+	o_imSize.whc        = w * h * c;
+	o_flow.resize(w * h * c);
+	for (unsigned k = 0; k < w * h * c; k++)
+		o_flow[k] = imTmp[k];
+
+	free(imTmp);
+
+	return EXIT_SUCCESS;
+}
+
+/**
  * @brief write image.
  *
  * @param p_name : path+name+extension of the image;
