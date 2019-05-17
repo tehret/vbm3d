@@ -52,6 +52,23 @@ int loadImage(
 );
 
 /**
+ * @brief Load optical flow, check the number of channels.
+ *
+ * @param p_name : name of the image to read;
+ * @param o_flow : vector which will contain the flow;
+ * @param o_imSize : will contain the size of the flow;
+ * @param p_verbose : if true, print some informations.
+ *
+ * @return EXIT_SUCCESS if the flow has been loaded, EXIT_FAILURE otherwise.
+ **/
+int loadFlow(
+    char* p_name
+,   std::vector<float> &o_flow
+,   ImageSize &o_imSize
+,   const bool p_verbose = false
+);
+
+/**
  * @brief write image.
  *
  * @param p_name : path+name+extension of the image;

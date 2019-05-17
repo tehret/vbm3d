@@ -18,8 +18,6 @@
  **/
 
 #include "LibVideoT.hpp"
-
-//#include <fftw3.h>
 #include "LibImages.h"
 
 #include <cstdio>
@@ -79,6 +77,68 @@ void Video<float>::loadVideo(
 		    frameSize.height != sz.height ||
 		    frameSize.nChannels != sz.channels)
 			throw std::runtime_error("Video<T>::loadVideo: size of " + 
+					std::string(filename) + " does not match video size");
+
+		//! copy data in first frame // FIXME: avoidable memcpy
+		p_data = std::copy(frame.begin(), frame.end(), p_data);
+	}
+
+	return;
+}
+	
+template <> 
+void Video<float>::loadFullFlow(
+    const std::string i_pathToFiles
+,   unsigned i_firstFrame
+,   unsigned i_lastFrame
+,   unsigned i_frameStep
+){
+	clear();
+
+	//! open first frame and allocate memory
+	std::vector<float>::iterator p_data;
+	{
+		char filename[1024];
+		std::sprintf(filename, i_pathToFiles.c_str(), i_firstFrame);
+
+		ImageSize frameSize;
+		std::vector<float> frame;
+		if (loadFlow(filename, frame, frameSize) == EXIT_FAILURE)
+			throw std::runtime_error("Video<T>::loadFlow: loading of " + 
+					std::string(filename) + " failed");
+
+		//! set size
+		sz.width    = frameSize.width;
+		sz.height   = frameSize.height;
+		sz.channels = frameSize.nChannels;
+		sz.frames   = (i_lastFrame - i_firstFrame + 1)/i_frameStep;
+		sz.update_fields();
+		
+		//! allocate
+		data.resize(sz.whcf);
+
+		//! copy data in first frame
+		p_data = std::copy(frame.begin(), frame.end(), data.begin());
+	}
+	
+	//! load rest of frames
+	for (unsigned f = i_firstFrame + i_frameStep; f <= i_lastFrame; f += i_frameStep)
+	{
+		char filename[1024];
+		std::sprintf(filename, i_pathToFiles.c_str(), f);
+
+		ImageSize frameSize;
+		std::vector<float> frame;
+
+		loadFlow(filename, frame, frameSize);
+		if (loadFlow(filename, frame, frameSize) == EXIT_FAILURE)
+			throw std::runtime_error("Video<T>::loadFlow: loading of " + 
+					std::string(filename) + " failed");
+
+		if (frameSize.width != sz.width ||
+		    frameSize.height != sz.height ||
+		    frameSize.nChannels != sz.channels)
+			throw std::runtime_error("Video<T>::loadFlow: size of " + 
 					std::string(filename) + " does not match video size");
 
 		//! copy data in first frame // FIXME: avoidable memcpy

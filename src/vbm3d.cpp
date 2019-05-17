@@ -41,8 +41,6 @@
 #include <omp.h>
 #endif
 
-#define TEMPEQ1
-
 /* 
  * In order to reproduce the original VBM3D the DC coefficients are
  * not thresholded (DCTHRESH commented) but are filtered using Wiener
@@ -92,7 +90,8 @@ int run_vbm3d(
     const float sigma
 ,   Video<float> &vid_noisy
 #ifdef OPTICALFLOW
-,   Video<float> &flow
+,   Video<float> &fflow
+,   Video<float> &bflow
 #endif
 ,   Video<float> &vid_basic
 ,   Video<float> &vid_denoised
@@ -159,7 +158,7 @@ int run_vbm3d(
 			//! Denoising, 1st Step
 			cout << "step 1..." << endl;
 #ifdef OPTICALFLOW
-			vbm3d_1st_step(sigma, vid_noisy, flow, vid_basic, prms_1,
+			vbm3d_1st_step(sigma, vid_noisy, fflow, bflow, vid_basic, prms_1,
 					&plan_2d[0], &plan_2d_inv[0], NULL, color_space, vid_noisy, numerator, denominator);
 #else
 			vbm3d_1st_step(sigma, vid_noisy, vid_basic, prms_1,
@@ -187,7 +186,7 @@ int run_vbm3d(
 			//! Denoising, 2nd Step
 			cout << "step 2..." << endl;
 #ifdef OPTICALFLOW
-			vbm3d_2nd_step(sigma, vid_noisy, vid_basic, flow, vid_denoised,
+			vbm3d_2nd_step(sigma, vid_noisy, vid_basic, fflow, bflow, vid_denoised,
 					prms_2, &plan_2d[0], &plan_2d_inv[0], NULL, color_space, vid_noisy, vid_basic, numerator, denominator);
 #else
 			vbm3d_2nd_step(sigma, vid_noisy, vid_basic, vid_denoised,
@@ -212,7 +211,10 @@ int run_vbm3d(
 	{
 		//! Cut the video in nb_threads parts
 		vector<Video<float> > sub_noisy(nb_threads);
-		vector<Video<float> > sub_flow(nb_threads);
+#ifdef OPTICALFLOW
+		vector<Video<float> > sub_fflow(nb_threads);
+		vector<Video<float> > sub_bflow(nb_threads);
+#endif
 		vector<Video<float> > sub_basic(nb_threads);
 		vector<Video<float> > sub_denoised(nb_threads);
 		vector<Video<float> > numerator(nb_threads);
@@ -220,7 +222,8 @@ int run_vbm3d(
 		std::vector<VideoUtils::CropPosition > imCrops(nb_threads);
 		VideoUtils::subDivideTight(vid_noisy, sub_noisy, imCrops, 2 * prms_1.n, nb_threads);
 #ifdef OPTICALFLOW
-		VideoUtils::subDivideTight(flow, sub_flow, imCrops, 2 * prms_1.n, nb_threads);
+		VideoUtils::subDivideTight(fflow, sub_fflow, imCrops, 2 * prms_1.n, nb_threads);
+		VideoUtils::subDivideTight(bflow, sub_bflow, imCrops, 2 * prms_1.n, nb_threads);
 #endif
 
 		if(prms_1.k > 0)
@@ -245,7 +248,7 @@ int run_vbm3d(
 				for (unsigned n = 0; n < nb_threads; n++)
 				{
 #ifdef OPTICALFLOW
-					vbm3d_1st_step(sigma, sub_noisy[n], sub_flow[n], sub_basic[n], prms_1, 
+					vbm3d_1st_step(sigma, sub_noisy[n], sub_fflow[n], sub_bflow[n], sub_basic[n], prms_1, 
 							&plan_2d[n], &plan_2d_inv[n], &imCrops[n], color_space, vid_noisy, numerator[n], denominator[n]);
 #else
 					vbm3d_1st_step(sigma, sub_noisy[n], sub_basic[n], prms_1, 
@@ -299,7 +302,7 @@ int run_vbm3d(
 				for (unsigned n = 0; n < nb_threads; n++)
 				{
 #ifdef OPTICALFLOW
-					vbm3d_2nd_step(sigma, sub_noisy[n], sub_basic[n], sub_flow[n], sub_denoised[n],
+					vbm3d_2nd_step(sigma, sub_noisy[n], sub_basic[n], sub_fflow[n], sub_bflow[n], sub_denoised[n],
 							prms_2, &plan_2d[n], &plan_2d_inv[n], &imCrops[n], color_space, vid_noisy, vid_basic, numerator[n], denominator[n]);
 #else
 					vbm3d_2nd_step(sigma, sub_noisy[n], sub_basic[n], sub_denoised[n],
@@ -378,7 +381,8 @@ void vbm3d_1st_step(
     const float sigma
 ,   Video<float> const& vid_noisy
 #ifdef OPTICALFLOW
-,   Video<float> &flow
+,   Video<float> &fflow
+,   Video<float> &bflow
 #endif
 ,   Video<float> &vid_basic
 ,   const Parameters& prms
@@ -474,7 +478,7 @@ void vbm3d_1st_step(
 				}
 
 #ifdef OPTICALFLOW
-                unsigned nSx_r = computeSimilarPatches(distances, patch_table[ind_j], pidx, originalVideo, flow, prms);
+                unsigned nSx_r = computeSimilarPatches(distances, patch_table[ind_j], pidx, originalVideo, fflow, bflow, prms);
 #else
                 unsigned nSx_r = computeSimilarPatches(distances, patch_table[ind_j], pidx, originalVideo, prms);
 #endif
@@ -589,7 +593,8 @@ void vbm3d_2nd_step(
 ,   Video<float> const& vid_noisy
 ,   Video<float> const& vid_basic
 #ifdef OPTICALFLOW
-,   Video<float> &flow
+,   Video<float> &fflow
+,   Video<float> &bflow
 #endif
 ,   Video<float> &vid_denoised
 ,   const Parameters& prms
@@ -686,7 +691,7 @@ void vbm3d_2nd_step(
 					pidx = originalVideo_basic.getIndexSymmetric(crop->origin_x + j_r, crop->origin_y + i_r, crop->origin_t + t_r, 0);
 				}
 #ifdef OPTICALFLOW
-				unsigned nSx_r = computeSimilarPatches(distances, patch_table[ind_j], pidx, originalVideo_basic, flow, prms);
+				unsigned nSx_r = computeSimilarPatches(distances, patch_table[ind_j], pidx, originalVideo_basic, fflow, bflow, prms);
 #else
 				unsigned nSx_r = computeSimilarPatches(distances, patch_table[ind_j], pidx, originalVideo_basic, prms);
 #endif
@@ -887,7 +892,8 @@ int computeSimilarPatches(
 ,	std::vector<unsigned>& index
 ,	unsigned pidx
 ,	const Video<float>& vid
-,   Video<float> &flow
+,   Video<float> &fflow
+,   Video<float> &bflow
 ,	const Parameters& prms
 ){
 	std::vector<std::pair<float, unsigned> > bestPatches;
@@ -911,20 +917,20 @@ int computeSimilarPatches(
 	for(unsigned nextFrame = 0; nextFrame < finalFrame; ++nextFrame)
 	{
         vid.sz.coords(preIndex, px, py, pt, pc);
-        px = px + flow(px + prms.k/2,py + prms.k/2,pt,0);
-        py = py + flow(px + prms.k/2,py + prms.k/2,pt,1);
+        px = std::min(std::max((int)(px + std::round(fflow(px + prms.k/2,py + prms.k/2,pt,0))), 0), (int)(vid.sz.width - prms.k));
+        py = std::min(std::max((int)(py + std::round(fflow(px + prms.k/2,py + prms.k/2,pt,1))), 0), (int)(vid.sz.height - prms.k));
         preIndex = vid.sz.index(px, py, pt + 1, pc);
         localSearch(preIndex, pidx, prms.Npr, prms.k, prms.kt, prms.Nb, prms.d, vid, alreadySeen, bestPatches);
 	}
 
-	//! Search in the previous frames (centered on the matches)
+	//! Search in the previous frames (centered on the backward optical flow)
 	finalFrame = rpt - std::max((int)(rpt - prms.Nf), 0);	
     preIndex = pidx;
 	for(unsigned nextFrame = 0; nextFrame < finalFrame; ++nextFrame)
 	{
         vid.sz.coords(preIndex, px, py, pt, pc);
-        px = px + flow(px + prms.k/2,py + prms.k/2,pt,0);
-        py = py + flow(px + prms.k/2,py + prms.k/2,pt,1);
+        px = std::min(std::max((int)(px + std::round(bflow(px + prms.k/2,py + prms.k/2,pt-1,0))), 0), (int)(vid.sz.width - prms.k));
+        py = std::min(std::max((int)(py + std::round(bflow(px + prms.k/2,py + prms.k/2,pt-1,1))), 0), (int)(vid.sz.height - prms.k));
         preIndex = vid.sz.index(px, py, pt - 1, pc);
         localSearch(preIndex, pidx, prms.Npr, prms.k, prms.kt, prms.Nb, prms.d, vid, alreadySeen, bestPatches);
 	}
@@ -1662,7 +1668,6 @@ void preProcess(
 		}
 }
 
-#ifdef TEMPEQ1
 // Functions optimized for a temporal dimension equal to one
 void temporal_transform(
 		std::vector<float>& group_3D
@@ -1713,7 +1718,3 @@ void temporal_inv_transform(
 		}
 	}
 }
-#else
-
-
-#endif

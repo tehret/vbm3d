@@ -33,6 +33,8 @@
 #define HAAR      7
 #define NONE      8
 
+//#define OPTICALFLOW
+
 using namespace std;
 
 void initializeParameters_1(
@@ -60,7 +62,7 @@ void initializeParameters_1(
 	if(kt < 0)
 		prms.kt = 1;
 	else
-		prms.kt = kt;
+		prms.kt = std::min(kt, 2);
 
 	if(Nf < 0)
 		prms.Nf = 4;
@@ -105,9 +107,19 @@ void initializeParameters_1(
 		prms.lambda3D = lambda3D;
 
 	if(T_2D == NONE)
-		prms.T_2D = DCT;
+    {
+        //if(prms.k == 8)
+        //    prms.T_2D = BIOR;
+        //else
+            prms.T_2D = DCT;
+    }
 	else
-		prms.T_2D = T_2D;
+    {
+        if(prms.k == 8)
+            prms.T_2D = T_2D;
+        else
+            prms.T_2D = DCT;
+    }
 
 	if(T_3D == NONE)
 		prms.T_3D = HAAR;
@@ -139,7 +151,7 @@ void initializeParameters_2(
 	if(kt < 0)
 		prms.kt = 1;
 	else
-		prms.kt = kt;
+		prms.kt = std::min(kt,2);
 
 	if(Nf < 0)
 		prms.Nf = 4;
@@ -182,7 +194,12 @@ void initializeParameters_2(
 	if(T_2D == NONE)
 		prms.T_2D = DCT;
 	else
-		prms.T_2D = T_2D;
+    {
+        if(prms.k == 8)
+            prms.T_2D = T_2D;
+        else
+            prms.T_2D = DCT;
+    }
 
 	if(T_3D == NONE)
 		prms.T_3D = HAAR;
@@ -210,7 +227,8 @@ int main(int argc, char **argv)
 	const string   diff_path = clo_option("-diff" , "diff_%03d.tiff" , "> Difference sequence");
 	const string   meas_path = clo_option("-meas" , "measure.txt"    , "> Text file containing the measures (only reliable when -add is set to true)");
 #ifdef OPTICALFLOW
-	const string   flow_path = clo_option("-flow" , "flow_%03d.flo"  , "< Optical flow ");
+	const string  fflow_path = clo_option("-fflow", ""  , "< Forward optical flow ");
+	const string  bflow_path = clo_option("-bflow", ""  , "< Backward optical flow ");
 #endif
 
 	const unsigned firstFrame = clo_option("-f", 0, "< Index of the first frame");
@@ -255,6 +273,14 @@ int main(int argc, char **argv)
 				argv[0], argv[0]);
 		return EXIT_FAILURE;
 	}
+#ifdef OPTICALFLOW
+    if (fflow_path == "" || bflow_path == "")
+	{
+		fprintf(stderr, "%s: no forward and backward flows.\nTry `%s --help' for more information.\n",
+				argv[0], argv[0]);
+		return EXIT_FAILURE;
+	}
+#endif
 
 	//! Variables initialization
 	const unsigned T_2D_hard  = (unsigned) clo_option("-T2dh", NONE , "< 2D transform (first pass), choice is 4 (dct) or 5 (bior)");
@@ -302,7 +328,8 @@ int main(int argc, char **argv)
 	//! Declarations
 	Video<float> vid, vid_noisy, vid_basic, vid_denoised, vid_diff;
 #ifdef OPTICALFLOW
-	Video<float> flow;
+	Video<float> fflow;
+	Video<float> bflow;
 #endif
 
 	//! Load video
@@ -311,7 +338,17 @@ int main(int argc, char **argv)
 		vid_basic.loadVideo(inbsc_path, firstFrame, lastFrame, frameStep);
 
 #ifdef OPTICALFLOW
-	flow.loadVideo(flow_path, firstFrame, lastFrame-1, frameStep);
+	fflow.loadFullFlow(fflow_path, firstFrame, lastFrame-1, frameStep);
+	bflow.loadFullFlow(bflow_path, firstFrame+1, lastFrame, frameStep);
+
+    // Check that all sizes are consistent
+    if(fflow.sz.width != bflow.sz.width || fflow.sz.width != vid.sz.width
+            || fflow.sz.height != bflow.sz.height || fflow.sz.height != vid.sz.height)
+    {
+		fprintf(stderr, "%s: Sizes (flows and video) are inconsistent.\nTry `%s --help' for more information.\n",
+				argv[0], argv[0]);
+		return EXIT_FAILURE;
+    }
 #endif
 
 	vid_noisy.resize(vid.sz);
@@ -329,7 +366,7 @@ int main(int argc, char **argv)
 
 	//! Denoising
 #ifdef OPTICALFLOW
-	if (run_vbm3d(fSigma, vid_noisy, flow, vid_basic, vid_denoised, prms_1, prms_2, color_space)
+	if (run_vbm3d(fSigma, vid_noisy, fflow, bflow, vid_basic, vid_denoised, prms_1, prms_2, color_space)
 			!= EXIT_SUCCESS)
 		return EXIT_FAILURE;
 #else
