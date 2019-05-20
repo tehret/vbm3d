@@ -108,9 +108,9 @@ void initializeParameters_1(
 
 	if(T_2D == NONE)
     {
-        //if(prms.k == 8)
-        //    prms.T_2D = BIOR;
-        //else
+        if(prms.k == 8)
+            prms.T_2D = BIOR;
+        else
             prms.T_2D = DCT;
     }
 	else
