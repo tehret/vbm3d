@@ -120,7 +120,7 @@ int run_vbm3d(
 
 #ifdef _OPENMP
 	cout << "Open MP used" << endl;
-	nb_threads = omp_get_num_procs();
+	nb_threads = omp_get_max_threads();
 	if(nb_threads > 32)
 		nb_threads = 32;
 
@@ -131,7 +131,7 @@ int run_vbm3d(
 
 	cout << endl << "Number of threads which will be used: " << nb_threads << endl;
 #ifdef _OPENMP
-	cout << " (real available cores: " << omp_get_num_procs() << ")" << endl;
+	cout << " (real available cores: " << omp_get_max_threads() << ")" << endl;
 #endif
 
 	//! Allocate plan for FFTW library
