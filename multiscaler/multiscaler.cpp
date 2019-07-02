@@ -291,9 +291,17 @@ void gblur(Image& image, float sigma)
        Then,
        x = sigma * sqrt( 2 * prec * ln(10) )
        */
+    //float prec = 3.0;
+    //int offset = (int) ceil( sigma * sqrt( 2.0 * prec * log(10.0) ) );
+    //int n = 1 + 2 * offset; /* kernel size */
+    //float* kernel = new float[n];
+    //gaussian_kernel(kernel, n, sigma, (float) offset);
+
+    //kernel_convolution(image, kernel, n, (float) offset);
+    //delete[] kernel;
     float prec = 3.0;
-    int offset = (int) ceil( sigma * sqrt( 2.0 * prec * log(10.0) ) );
-    int n = 1 + 2 * offset; /* kernel size */
+    float offset = ((int) ceil( sigma * sqrt( 2.0 * prec * log(10.0) ) )) -0.5;
+    int n = 2 * offset; /* kernel size */
     float* kernel = new float[n];
     gaussian_kernel(kernel, n, sigma, (float) offset);
 
@@ -439,8 +447,8 @@ void lanczos3_kernel(float * kernel, int n, float offset)
 Image ldown(const Image& image)
 {
     /* compute the Lanczos kernel */
-    float offset = 5.5;
-    int n = 12; /* kernel size */
+    float offset = 6;
+    int n = 1 + 2*offset; /* kernel size */
     float* kernel = new float[n];
     lanczos3_kernel(kernel, n, offset);
 
