@@ -38,6 +38,11 @@ void idct_inplace(Image &img);
 const char *pick_option(int *c, char **v, const char *o, const char *d);
 Image read_image(const std::string& filename);
 void save_image(const Image& image, const std::string& filename);
+void gblur(Image& image, float sigma);
+Image gdown(const Image& image);
+Image gup(const Image& image, int sx, int sy);
+Image ldown(const Image& image);
+Image lup(const Image& image, int sx, int sy);
 
 }
 
