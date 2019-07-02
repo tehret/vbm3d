@@ -1,6 +1,8 @@
 multiscaler
 ===========
 
+*Adapted from https://github.com/npd/multiscaler*
+
 Decompose and recompose an image into a DCT pyramid.
 
 Every layer of the pyramid contains as many DCT (low) frequencies as its number of pixels.
