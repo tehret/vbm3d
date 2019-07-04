@@ -221,10 +221,6 @@ int run_vbm3d(
 		vector<Video<float> > denominator(nb_threads);
 		std::vector<VideoUtils::CropPosition > imCrops(nb_threads);
 		VideoUtils::subDivideTight(vid_noisy, sub_noisy, imCrops, 2 * prms_1.n, nb_threads);
-#ifdef OPTICALFLOW
-		VideoUtils::subDivideTight(fflow, sub_fflow, imCrops, 2 * prms_1.n, nb_threads);
-		VideoUtils::subDivideTight(bflow, sub_bflow, imCrops, 2 * prms_1.n, nb_threads);
-#endif
 
 		if(prms_1.k > 0)
 		{
@@ -248,7 +244,7 @@ int run_vbm3d(
 				for (unsigned n = 0; n < nb_threads; n++)
 				{
 #ifdef OPTICALFLOW
-					vbm3d_1st_step(sigma, sub_noisy[n], sub_fflow[n], sub_bflow[n], sub_basic[n], prms_1, 
+					vbm3d_1st_step(sigma, sub_noisy[n], fflow, bflow, sub_basic[n], prms_1, 
 							&plan_2d[n], &plan_2d_inv[n], &imCrops[n], color_space, vid_noisy, numerator[n], denominator[n]);
 #else
 					vbm3d_1st_step(sigma, sub_noisy[n], sub_basic[n], prms_1, 
@@ -302,7 +298,7 @@ int run_vbm3d(
 				for (unsigned n = 0; n < nb_threads; n++)
 				{
 #ifdef OPTICALFLOW
-					vbm3d_2nd_step(sigma, sub_noisy[n], sub_basic[n], sub_fflow[n], sub_bflow[n], sub_denoised[n],
+					vbm3d_2nd_step(sigma, sub_noisy[n], sub_basic[n], fflow, bflow, sub_denoised[n],
 							prms_2, &plan_2d[n], &plan_2d_inv[n], &imCrops[n], color_space, vid_noisy, vid_basic, numerator[n], denominator[n]);
 #else
 					vbm3d_2nd_step(sigma, sub_noisy[n], sub_basic[n], sub_denoised[n],
