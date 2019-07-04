@@ -365,7 +365,7 @@ Image gdown(const Image& image)
        x = sigma * sqrt( 2 * prec * ln(10) )
        */
     float prec = 3.0;
-    int offset = (int) ceil( sigma * sqrt( 2.0 * prec * log(10.0) ) );
+    float offset = ceil( sigma * sqrt( 2.0 * prec * log(10.0) ) ) + 0.5;
     int n = 1 + 2 * offset; /* kernel size */
     float* kernel = new float[n];
     gaussian_kernel(kernel, n, sigma, (float) offset);
