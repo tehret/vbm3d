@@ -63,6 +63,9 @@ endif()
 set(EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR}/bin)
 
 add_subdirectory(multiscaler)
-add_subdirectory(tvl1flow)
 add_subdirectory(src)
 add_subdirectory(src/utils)
+
+if(OPTICALFLOW)
+    add_subdirectory(tvl1flow)
+endif()
