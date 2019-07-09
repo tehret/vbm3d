@@ -40,8 +40,8 @@ int main(int argc, char **argv)
 
 	//! Paths to input/output sequences
 	using std::string;
-	const string  input_path = clo_option("-i"    , ""              , "< input sequence");
-	const string  inbsc_path = clo_option("-r"    , ""              , "< input basic sequence");
+	const string  input_path = clo_option("-i"    , ""              , "< Input sequence");
+	const string  inbsc_path = clo_option("-r"    , ""              , "< Reference sequence");
 
 	const unsigned firstFrame = clo_option("-f", 0, "first frame");
 	const unsigned lastFrame  = clo_option("-l", 0, "last frame");
