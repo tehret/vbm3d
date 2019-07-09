@@ -183,45 +183,6 @@ void kernel_convolution(Image& image, float* kernel, int n, float offset)
               }
               image.val(y,x,c) = val;
           }
-      /* x axis convolution */
-
-      ///* y axis convolution */
-      //for(int x = 0; x < X; ++x)
-      //    for(int y = 0; y < Y; ++y)
-      //    {
-      //        float val = 0.0;
-      //        for(int i = 0; i < n; ++i)
-      //        {
-      //            int j = std::round(y - offset + i);
-
-      //            /* symmetry boundary condition */
-      //            //while(j<0) j += ny2;
-      //            //while(j>=ny2) j -= ny2;
-      //            //if( j >= Y ) j = ny2-1-j;
-      //            j = std::min(std::max(j,0), Y-1);
-
-      //            val += image.val(j,x,c) * kernel[i];
-      //        }
-      //        tmp[x+y*X] = val;
-      //    }
-      //for(int x = 0; x < X; ++x)
-      //    for(int y = 0; y < Y; ++y)
-      //    {
-      //        float val = 0.0;
-      //        for(int i = 0; i < n; ++i)
-      //        {
-      //            int j = std::round(x - offset + i);
-
-      //            /* symmetry boundary condition */
-      //            //while(j<0) j += nx2;
-      //            //while(j>=nx2) j -= nx2;
-      //            //if( j >= X ) j = nx2-1-j;
-      //            j = std::min(std::max(j,0), X-1);
-
-      //            val += tmp[j+y*X] * kernel[i];
-      //        }
-      //        image.val(y,x,c) = val;
-      //    }
   }
 
   /* free memory */
@@ -332,16 +293,8 @@ void gblur(Image& image, float sigma)
        Then,
        x = sigma * sqrt( 2 * prec * ln(10) )
        */
-    //float prec = 3.0;
-    //int offset = (int) ceil( sigma * sqrt( 2.0 * prec * log(10.0) ) );
-    //int n = 1 + 2 * offset; /* kernel size */
-    //float* kernel = new float[n];
-    //gaussian_kernel(kernel, n, sigma, (float) offset);
-
-    //kernel_convolution(image, kernel, n, (float) offset);
-    //delete[] kernel;
     float prec = 3.0;
-    float offset = ((int) ceil( sigma * sqrt( 2.0 * prec * log(10.0) ) )) -0.5;
+    float offset = ((int) ceil( sigma * sqrt( 2.0 * prec * log(10.0) ) )) - 0.5;
     int n = 2 * offset; /* kernel size */
     float* kernel = new float[n];
     gaussian_kernel(kernel, n, sigma, (float) offset);
@@ -492,9 +445,6 @@ Image ldown(const Image& image)
     int n = 1+2*offset; /* kernel size */
     float* kernel = new float[n];
     lanczos3_kernel(kernel, n, offset);
-    for(int i = 0; i < n; ++i)
-        printf("%f | ", kernel[i]);
-    printf("\n");
 
     Image blurred = image;
     kernel_convolution(blurred, kernel, n, offset);

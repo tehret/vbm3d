@@ -58,48 +58,42 @@ int main(int argc, char *argv[]) {
   // Gaussian
   else if(type == 1)
   {
-      //printf("Using Gaussian");
-      //Image current = read_image(input_prefix + to_string(levels-1) + input_suffix);
-      //for (int i = levels-2; i >= 0; --i) {
-      //    // Read level i of the pyramid
-      //    Image image = read_image(input_prefix + to_string(i) + input_suffix);
+      Image current = read_image(input_prefix + to_string(levels-1) + input_suffix);
+      for (int i = levels-2; i >= 0; --i) {
+          // Read level i of the pyramid
+          Image image = read_image(input_prefix + to_string(i) + input_suffix);
 
-      //    Image small = gdown(image);
+          Image small = gdown(image);
 
-      //    // current -= small
-      //    for (int j = 0; j < current.rows(); ++j)
-      //    for (int k = 0; k < current.columns(); ++k)
-      //    for (int l = 0; l < current.channels(); ++l)
-      //        current.val(k,j,l) = current.val(k,j,l) - small.val(k,j,l);
+          // current -= small
+          for (int j = 0; j < current.rows(); ++j)
+          for (int k = 0; k < current.columns(); ++k)
+          for (int l = 0; l < current.channels(); ++l)
+              current.val(k,j,l) = current.val(k,j,l) - small.val(k,j,l);
 
-      //    gblur(current, recompose_factor);
+          gblur(current, recompose_factor);
 
-      //    current = gup(current, image.rows(), image.columns());
-      //    
-      //    // current += image;
-      //    for (int j = 0; j < current.rows(); ++j)
-      //    for (int k = 0; k < current.columns(); ++k)
-      //    for (int l = 0; l < current.channels(); ++l)
-      //        current.val(k,j,l) = current.val(k,j,l) + image.val(k,j,l);
-      //    
-      //    //image + gup(gblur(current - gdown(image),recompose_factor));
-      //}
-      //output = current;
-      output = gup(output, 2*output.rows(), 2*output.columns());
-
+          current = gup(current, image.rows(), image.columns());
+          
+          // current += image;
+          for (int j = 0; j < current.rows(); ++j)
+          for (int k = 0; k < current.columns(); ++k)
+          for (int l = 0; l < current.channels(); ++l)
+              current.val(k,j,l) = current.val(k,j,l) + image.val(k,j,l);
+          
+          //image + gup(gblur(current - gdown(image),recompose_factor));
+      }
+      output = current;
   }
   // Lanczos
   else if(type == 2)
   {
-      printf("Using Lanczos\n");
       Image current = read_image(input_prefix + to_string(levels-1) + input_suffix);
       for (int i = levels-2; i >= 0; --i) {
           // Read level i of the pyramid
           Image image = read_image(input_prefix + to_string(i) + input_suffix);
 
           Image small = ldown(image);
-
-          printf("%d %d %d || %d %d %d || %d %d %d\n", current.rows(), current.columns(), current.channels(), small.rows(), small.columns(), small.channels(), image.rows(), image.columns(), image.channels());
 
           // current -= small
           for (int j = 0; j < current.rows(); ++j)
