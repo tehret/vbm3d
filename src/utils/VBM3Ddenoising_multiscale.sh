@@ -1,24 +1,15 @@
 #!/bin/bash
-#set -x
-# dctdenoising_multi.sh 
-#        noisy.tif
-#        40
-#        out.tif      # also creates out.tif.non.tif
-#        "-w 8 -1"    # dctdenoising params (optional)
-#        3            # LEVELS of pyramid (default: -1 = auto) (optional)
-#        2            # R_PYR pyramid ratio: 2 (optional)
-#        0.7          # PAR_PYR recomposition ratio : 0.7 (optional)
-
 PATH_MULTISCALE=./
 
 if [ $# -lt 4 ]; then
-    echo "$0 noisy.tif sigma out.tif"
-    echo "    \"-w 8 -1\"  # dctdenoising params (optional)"
-    echo "    -1           # LEVELS of pyramid (default: -1 = auto) (optional)"
-    echo "    2            # R_PYR pyramid ratio: 2 (optional), 1.5 also possible"
-    echo "    0.7          # PAR_PYR recomposition ratio : 0.7 (optional)"
-    echo "    1 150        # first_frame and last_frame for the video"
-    echo "    1            # 3D dct for the video instead of frame by frame"
+    echo "$0 input_%03d.png sigma outputFolder out_%03d.tif"
+    echo "    \"\"  # denoising params"
+    echo "    3     # Number of scales, (optional) default is 3"
+    echo "    1     # index of the first frame of the video, (optional) default is 1"
+    echo "    100   # index of the last frame of the video, (optional) default is 100"
+    echo "    0     # type of multiscaler (0: DCT, 1: Gaussian, 2: Lanczos), default is 0 (optional)"
+    echo "    2     # R_PYR pyramid ratio: 2 (optional), 1.5 also possible"
+    echo "    0.7   # PAR_PYR recomposition ratio : 0.7 (optional)"
     exit 1
 fi
 
@@ -27,9 +18,10 @@ NOISE=$2
 OUT=$3
 OUTPUT=$4
 DEN_ARGS=$5
-LEVELS=2
+LEVELS=3
 FIRST=1
-LAST=150
+LAST=100
+MSTYPE=0
 R_PYR=2   
 PAR_PYR=0.7
 
