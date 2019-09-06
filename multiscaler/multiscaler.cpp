@@ -370,6 +370,14 @@ Image gup(const Image& image, int sx, int sy)
     for (int l = 0; l < image.channels(); ++l)
         output.val(2*k+1,2*j,l) = temp2.val(k,j,l);
 
+    // If the requested size are uneven, pad the results
+    if(sy % 2 == 1)
+    {
+        for (int j = 0; j < image.rows(); ++j)
+        for (int l = 0; l < output.channels(); ++l)
+            output.val(sy-1,2*j,l) = temp2.val(image.columns()-1,j,l);
+    }
+
     temp1 = directional_kernel_convolution(image, kernel2, n, offset2, 0);
     temp2 = directional_kernel_convolution(temp1, kernel1, n, offset1, 1);
     // Copy the result at the correct position
@@ -377,6 +385,14 @@ Image gup(const Image& image, int sx, int sy)
     for (int k = 0; k < image.columns(); ++k)
     for (int l = 0; l < image.channels(); ++l)
         output.val(2*k,2*j+1,l) = temp2.val(k,j,l);
+
+    // If the requested size are uneven, pad the results
+    if(sx % 2 == 1)
+    {
+        for (int k = 0; k < image.columns(); ++k)
+        for (int l = 0; l < output.channels(); ++l)
+            output.val(2*k,sx-1,l) = temp2.val(k,image.rows()-1,l);
+    }
 
     temp2 = directional_kernel_convolution(temp1, kernel2, n, offset2, 1);
     // Copy the result at the correct position
@@ -388,20 +404,20 @@ Image gup(const Image& image, int sx, int sy)
     // If the requested size are uneven, pad the results
     if(sx % 2 == 1)
     {
-        for (int k = 0; k < output.columns(); ++k)
+        for (int k = 0; k < image.columns(); ++k)
         for (int l = 0; l < output.channels(); ++l)
-            output.val(k,sx-1,l) = temp2.val(k,sx-2,l);
+            output.val(2*k+1,sx-1,l) = temp2.val(k,image.rows()-1,l);
     }
     if(sy % 2 == 1)
     {
-        for (int j = 0; j < output.columns(); ++j)
+        for (int j = 0; j < image.rows(); ++j)
         for (int l = 0; l < output.channels(); ++l)
-            output.val(sy-1,j,l) = temp2.val(sy-2,j,l);
+            output.val(sy-1,2*j+1,l) = temp2.val(image.columns()-1,j,l);
     }
     if(sx % 2 == 1 && sy % 2 == 1)
     {
         for (int l = 0; l < output.channels(); ++l)
-            output.val(sy-1,sx-1,l) = temp2.val(sy-2,sx-1,l);
+            output.val(sy-1,sx-1,l) = temp2.val(image.columns()-1,image.rows()-1,l);
     }
 
     delete[] kernel1;
@@ -493,6 +509,14 @@ Image lup(const Image& image, int sx, int sy)
     for (int l = 0; l < image.channels(); ++l)
         output.val(2*k+1,2*j,l) = temp2.val(k,j,l);
 
+    // If the requested size are uneven, pad the results
+    if(sy % 2 == 1)
+    {
+        for (int j = 0; j < image.rows(); ++j)
+        for (int l = 0; l < output.channels(); ++l)
+            output.val(sy-1,2*j,l) = temp2.val(image.columns()-1,j,l);
+    }
+
     temp1 = directional_kernel_convolution(image, kernel2, n, offset2, 0);
     temp2 = directional_kernel_convolution(temp1, kernel1, n, offset1, 1);
     // Copy the result at the correct position
@@ -500,6 +524,14 @@ Image lup(const Image& image, int sx, int sy)
     for (int k = 0; k < image.columns(); ++k)
     for (int l = 0; l < image.channels(); ++l)
         output.val(2*k,2*j+1,l) = temp2.val(k,j,l);
+
+    // If the requested size are uneven, pad the results
+    if(sx % 2 == 1)
+    {
+        for (int k = 0; k < image.columns(); ++k)
+        for (int l = 0; l < output.channels(); ++l)
+            output.val(2*k,sx-1,l) = temp2.val(k,image.rows()-1,l);
+    }
 
     temp2 = directional_kernel_convolution(temp1, kernel2, n, offset2, 1);
     // Copy the result at the correct position
@@ -511,20 +543,20 @@ Image lup(const Image& image, int sx, int sy)
     // If the requested size are uneven, pad the results
     if(sx % 2 == 1)
     {
-        for (int k = 0; k < output.columns(); ++k)
+        for (int k = 0; k < image.columns(); ++k)
         for (int l = 0; l < output.channels(); ++l)
-            output.val(k,sx-1,l) = temp2.val(k,sx-2,l);
+            output.val(2*k+1,sx-1,l) = temp2.val(k,image.rows()-1,l);
     }
     if(sy % 2 == 1)
     {
-        for (int j = 0; j < output.columns(); ++j)
+        for (int j = 0; j < image.rows(); ++j)
         for (int l = 0; l < output.channels(); ++l)
-            output.val(sy-1,j,l) = temp2.val(sy-2,j,l);
+            output.val(sy-1,2*j+1,l) = temp2.val(image.columns()-1,j,l);
     }
     if(sx % 2 == 1 && sy % 2 == 1)
     {
         for (int l = 0; l < output.channels(); ++l)
-            output.val(sy-1,sx-1,l) = temp2.val(sy-2,sx-1,l);
+            output.val(sy-1,sx-1,l) = temp2.val(image.columns()-1,image.rows()-1,l);
     }
 
     delete[] kernel1;
