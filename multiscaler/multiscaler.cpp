@@ -284,6 +284,12 @@ void gaussian_kernel(float * kernel, int n, float sigma, float mean)
 // Blur the image with a Gaussian kernel of std. dev. sigma
 void gblur(Image& image, float sigma)
 {
+
+    // If sigma is too small, we consider that the kernel is a Dirac delta 
+    // too avoid dealing with support too small 
+    if(sigma < 0.41)
+        return;
+
     /* compute the Gaussian kernel */
     /*
        The size of the kernel is selected to guarantee that the first discarded
