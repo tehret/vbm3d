@@ -83,7 +83,6 @@ int main(int argc, char *argv[]) {
   // Compute the Lanczos pyramid
   else if(type == 2)
   {
-      printf("Using lanczos\n");
       if(ratio != 2.)
       {
           cerr << "Usage: Lanczos pyramid has only been implemented for a ratio (option \"-r\") of 2" << endl;
