@@ -10,11 +10,11 @@ using std::cerr;
 using std::endl;
 
 int main(int argc, char *argv[]) {
-  float ratio = atof(pick_option(&argc, argv, "r", "2."));
+  int ratio = 2.;
   bool usage = pick_option(&argc, argv, "h", nullptr);
   int type = atoi(pick_option(&argc, argv, "t", "0"));
   if (argc != 5 || usage) {
-    cerr << "Usage: " << argv[0] << " input prefix levels suffix [-r ratio] [-t type: 0=DCT, 1=Gaussian, 2=Lanczos]" << endl;
+    cerr << "Usage: " << argv[0] << " input prefix levels suffix [-t type: 0=DCT, 1=Gaussian, 2=Lanczos]" << endl;
     exit(EXIT_FAILURE);
   }
   string input = argv[1];
