@@ -19,8 +19,10 @@ class Image {
   Image(int rows, int columns, int channels = 1) { Init(rows, columns, channels); }
   Image(float *data, int rows, int columns, int channels = 1);  // construct from C array
 
-  Image(const Image&) = delete;  // disable copy constructor
-  Image& operator=(const Image&) = delete;
+  //Image(const Image&) = delete;  // disable copy constructor
+  //Image& operator=(const Image&) = delete;
+  Image(const Image&) = default;  // disable copy constructor
+  Image& operator=(const Image&) = default;
 
   Image(Image&&) = default;  // default move constructor
   Image& operator=(Image&&) = default;
@@ -49,6 +51,10 @@ class Image {
 inline Image::Image(float *data, int rows, int columns, int channels)
     : rows_(rows), columns_(columns), channels_(channels),
       data_(data, data + rows * columns * channels) {}
+
+//inline Image::Image(const Image& im)
+//    : rows_(im.rows()), columns_(im.columns()), channels_(im.channels()),
+//      data_(im.data(), im.data() + im.rows() * im.columns() * im.channels()) {}
 
 inline void Image::Init(int rows, int columns, int channels) {
   rows_ = rows;

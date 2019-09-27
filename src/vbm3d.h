@@ -18,8 +18,6 @@
 #include "Utilities/LibVideoT.hpp"
 #include "parameters.h"
 
-//#define OPTICALFLOW
-
 /** ------------------ **/
 /** - Main functions - **/
 /** ------------------ **/

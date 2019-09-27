@@ -53,9 +53,19 @@ endif()
 
 ###############################################################################
 
+if(OPTICALFLOW)
+    message("-- Compiling with the optical flow option activated.")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DOPTICALFLOW")
+endif()
+
+###############################################################################
+
 set(EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR}/bin)
 
 add_subdirectory(multiscaler)
-add_subdirectory(tvl1flow)
 add_subdirectory(src)
 add_subdirectory(src/utils)
+
+if(OPTICALFLOW)
+    add_subdirectory(tvl1flow)
+endif()

@@ -35,15 +35,15 @@ using namespace std;
 
 int main(int argc, char **argv)
 {
-	clo_usage("Video NL-Bayes video denoising");
+	clo_usage("Add noise");
 	clo_help(" NOTE: Input (<) and output (>) sequences are specified by their paths in printf format.\n");
 
 	//! Paths to input/output sequences
 	using std::string;
-	const string  input_path = clo_option("-i"    , ""              , "< input sequence");
-	const int sigma = clo_option("-sigma", 2.f, "< Ratio between the scale");
+	const string  input_path = clo_option("-i", "", "< input sequence");
+	const int sigma = clo_option("-sigma", 20.f, "< Noise level (std. dev.)");
 	const unsigned first_frame = clo_option("-f", 0, "< First frame of the video");
-	const unsigned last_frame = clo_option("-l", 0, "< LastFrame of the video");
+	const unsigned last_frame = clo_option("-l", 0, "< Last frame of the video");
 
 	//! Declarations
 	Video<float> original, noisy;
