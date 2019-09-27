@@ -41,6 +41,7 @@ int main(int argc, char **argv)
 	//! Paths to input/output sequences
 	using std::string;
 	const string  input_path = clo_option("-i", "", "< input sequence");
+	const string  output_path = clo_option("-o", "noisy/noisy_%04d.tiff", "> output sequence");
 	const int sigma = clo_option("-sigma", 20.f, "< Noise level (std. dev.)");
 	const unsigned first_frame = clo_option("-f", 0, "< First frame of the video");
 	const unsigned last_frame = clo_option("-l", 0, "< Last frame of the video");
@@ -55,6 +56,6 @@ int main(int argc, char **argv)
 	VideoUtils::addNoise(original, noisy, sigma, false);
 
 	//! Save noisy video
-	noisy.saveVideo("noisy/noisy_%04d.tiff", first_frame, 1u);
+	noisy.saveVideo(output_path, first_frame, 1u);
 	return EXIT_SUCCESS;
 }
