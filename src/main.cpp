@@ -221,10 +221,10 @@ int main(int argc, char **argv)
 	using std::string;
 	const string  input_path = clo_option("-i"    , ""               , "< Input sequence");
 	const string  inbsc_path = clo_option("-b"    , ""               , "< Input basic sequence (it will replace the basic estimation step)");
-	const string  noisy_path = clo_option("-nisy" , "noisy_%03d.tiff", "> Noisy sequence");
+	const string  noisy_path = clo_option("-nisy" , "", "> Noisy sequence");
 	const string  final_path = clo_option("-deno" , "deno_%03d.tiff" , "> Denoised sequence");
-	const string  basic_path = clo_option("-bsic" , "basic_%03d.tiff", "> Basic denoised sequence");
-	const string   diff_path = clo_option("-diff" , "diff_%03d.tiff" , "> Difference sequence");
+	const string  basic_path = clo_option("-bsic" , "", "> Basic denoised sequence");
+	const string   diff_path = clo_option("-diff" , "" , "> Difference sequence");
 	const string   meas_path = clo_option("-meas" , "measure.txt"    , "> Text file containing the measures (only reliable when -add is set to true)");
 #ifdef OPTICALFLOW
 	const string  fflow_path = clo_option("-fflow", ""  , "< Forward optical flow ");
@@ -407,16 +407,19 @@ int main(int argc, char **argv)
 	}
 
 	//! Compute Difference
-	cout << endl << "Compute difference...";
-	VideoUtils::computeDiff(vid, vid_denoised, vid_diff, fSigma);
-	cout << "done." << endl;
+	if (diff_path != "")
+	{
+		cout << endl << "Compute difference...";
+		VideoUtils::computeDiff(vid, vid_denoised, vid_diff, fSigma);
+		cout << "done." << endl;
+	}
 
 	//! save noisy, denoised and differences videos
 	cout << endl << "Save videos...";
-	vid_noisy.saveVideo(noisy_path, firstFrame, frameStep);
-	vid_basic.saveVideo(basic_path, firstFrame, frameStep);
+	if (noisy_path != "") vid_noisy.saveVideo(noisy_path, firstFrame, frameStep);
+	if (basic_path != "") vid_basic.saveVideo(basic_path, firstFrame, frameStep);
+	if ( diff_path != "") vid_diff .saveVideo( diff_path, firstFrame, frameStep);
 	vid_denoised.saveVideo(final_path, firstFrame, frameStep);
-	vid_diff.saveVideo(diff_path, firstFrame, frameStep);
 
 	cout << "done." << endl;
 
