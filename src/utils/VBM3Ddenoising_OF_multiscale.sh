@@ -39,13 +39,9 @@ if [ -n "$9" ]; then
     MSTYPE=$9
 fi
 if [ -n "${10}" ]; then
-    R_PYR=${10}
-fi
-if [ -n "${11}" ]; then
-    PAR_PYR=${11}
+    PAR_PYR=${10}
 fi
 
-DEC_ARGS="-r ${R_PYR}"
 MS_ARGS="-c ${PAR_PYR}"
 
 # Clean noisy
@@ -72,7 +68,7 @@ done
 wait
 for ((frame=FIRST; frame<=LAST; ++frame))
 do
-    $PATH_MULTISCALE/recompose denoised/level_ ${LEVELS} _$(printf "%04d" $frame).tiff $(printf $OUT/$OUTPUT $frame) -t $MSTYPE
+    $PATH_MULTISCALE/recompose denoised/level_ ${LEVELS} _$(printf "%04d" $frame).tiff $(printf $OUT/$OUTPUT $frame) -t $MSTYPE ${MS_ARGS}
 done
 
 ./psnr -i $OUT/$OUTPUT -r ${INPUT} -f ${FIRST} -l ${LAST} > $OUT/psnr.txt

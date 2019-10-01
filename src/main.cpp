@@ -33,7 +33,15 @@
 #define HAAR      7
 #define NONE      8
 
+//#define MOTIONCOMP
+//#define SLOW3D
 //#define OPTICALFLOW
+
+// OPTICALFLOW is necessary for montion compensation
+#ifdef MOTIONCOMP
+#define OPTICALFLOW
+#endif
+
 
 using namespace std;
 
@@ -62,7 +70,11 @@ void initializeParameters_1(
 	if(kt < 0)
 		prms.kt = 1;
 	else
+#ifndef SLOW3D
 		prms.kt = std::min(kt, 2);
+#else
+		prms.kt = kt;
+#endif
 
 	if(Nf < 0)
 		prms.Nf = 4;
@@ -151,7 +163,11 @@ void initializeParameters_2(
 	if(kt < 0)
 		prms.kt = 1;
 	else
-		prms.kt = std::min(kt,2);
+#ifndef SLOW3D
+		prms.kt = std::min(kt, 2);
+#else
+		prms.kt = kt;
+#endif
 
 	if(Nf < 0)
 		prms.Nf = 4;

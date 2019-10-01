@@ -16,8 +16,9 @@ set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wall -ggdb")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -std=c++11 -Wall -O3 -w -s -ffast-math -fomit-frame-pointer -fstrength-reduce")
 
 set(CMAKE_BUILD_TYPE Release)
+#set(CMAKE_BUILD_TYPE Debug)
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99 -g")
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -g -fsanitize=address")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wall -O3 -w -s -ffast-math -fomit-frame-pointer -fstrength-reduce")
 
@@ -52,6 +53,17 @@ if(OPENMP_FOUND)
 endif()
 
 ###############################################################################
+
+if(SLOW3D)
+    message("-- Compiling with the slow temporal transform.")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DSLOW3D")
+endif()
+
+if(MOTIONCOMP)
+    message("-- Compiling with motion compensated patches.")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DMOTIONCOMP")
+    set(OPTICALFLOW "1")
+endif()
 
 if(OPTICALFLOW)
     message("-- Compiling with the optical flow option activated.")
