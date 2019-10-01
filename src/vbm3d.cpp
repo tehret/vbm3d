@@ -137,6 +137,10 @@ int run_vbm3d(
 	//! Allocate plan for FFTW library
 	fftwf_plan plan_2d[nb_threads];
 	fftwf_plan plan_2d_inv[nb_threads];
+#ifdef SLOW3D
+	fftwf_plan plan_1d[nb_threads];
+	fftwf_plan plan_1d_inv[nb_threads];
+#endif
 
 	//! In the simple case
 	if(nb_threads == 1)
@@ -154,15 +158,32 @@ int run_vbm3d(
 				allocate_plan_2d(&plan_2d_inv[0], prms_1.k, FFTW_REDFT01,
 						prms_1.N * nb_cols * vid_noisy.sz.channels * prms_1.kt);
 			}
+#ifdef SLOW3D
+            const unsigned nb_cols = ind_size(0, vid_noisy.sz.width - prms_1.k, prms_1.p);
+            allocate_plan_1d(&plan_1d[0], prms_1.kt, FFTW_REDFT10,
+                    prms_1.N * vid_noisy.sz.channels * prms_1.k * prms_1.k);
+            allocate_plan_1d(&plan_1d_inv[0], prms_1.kt, FFTW_REDFT01,
+                    prms_1.N * nb_cols * vid_noisy.sz.channels * prms_1.k * prms_1.k);
+#endif
 
 			//! Denoising, 1st Step
 			cout << "step 1..." << endl;
 #ifdef OPTICALFLOW
+#ifdef SLOW3D
+			vbm3d_1st_step(sigma, vid_noisy, fflow, bflow, vid_basic, prms_1,
+					&plan_2d[0], &plan_2d_inv[0], &plan_1d[0], &plan_1d_inv[0], NULL, color_space, vid_noisy, numerator, denominator);
+#else
 			vbm3d_1st_step(sigma, vid_noisy, fflow, bflow, vid_basic, prms_1,
 					&plan_2d[0], &plan_2d_inv[0], NULL, color_space, vid_noisy, numerator, denominator);
+#endif
+#else
+#ifdef SLOW3D
+			vbm3d_1st_step(sigma, vid_noisy, vid_basic, prms_1,
+					&plan_2d[0], &plan_2d_inv[0], &plan_1d[0], &plan_1d_inv[0], NULL, color_space, vid_noisy, numerator, denominator);
 #else
 			vbm3d_1st_step(sigma, vid_noisy, vid_basic, prms_1,
 					&plan_2d[0], &plan_2d_inv[0], NULL, color_space, vid_noisy, numerator, denominator);
+#endif
 #endif
 			cout << "done." << endl;
 			for (unsigned k = 0; k < vid_noisy.sz.whcf; k++)
@@ -183,14 +204,32 @@ int run_vbm3d(
 				allocate_plan_2d(&plan_2d_inv[0], prms_2.k, FFTW_REDFT01,
 						prms_2.N * nb_cols * vid_noisy.sz.channels * prms_2.kt);
 			}
+#ifdef SLOW3D
+            const unsigned nb_cols = ind_size(0, (vid_basic.sz.width - prms_2.k), prms_2.p);
+            allocate_plan_1d(&plan_1d[0], prms_2.kt, FFTW_REDFT10,
+                    prms_2.N * vid_noisy.sz.channels * prms_2.k * prms_2.k);
+            allocate_plan_1d(&plan_1d_inv[0], prms_2.kt, FFTW_REDFT01,
+                    prms_2.N * nb_cols * vid_noisy.sz.channels * prms_2.k * prms_2.k);
+#endif
+
 			//! Denoising, 2nd Step
 			cout << "step 2..." << endl;
 #ifdef OPTICALFLOW
+#ifdef SLOW3D
+			vbm3d_2nd_step(sigma, vid_noisy, vid_basic, fflow, bflow, vid_denoised,
+					prms_2, &plan_2d[0], &plan_2d_inv[0], &plan_1d[0], &plan_1d_inv[0], NULL, color_space, vid_noisy, vid_basic, numerator, denominator);
+#else
 			vbm3d_2nd_step(sigma, vid_noisy, vid_basic, fflow, bflow, vid_denoised,
 					prms_2, &plan_2d[0], &plan_2d_inv[0], NULL, color_space, vid_noisy, vid_basic, numerator, denominator);
+#endif
+#else
+#ifdef SLOW3D
+			vbm3d_2nd_step(sigma, vid_noisy, vid_basic, vid_denoised,
+					prms_2, &plan_2d[0], &plan_2d_inv[0], &plan_1d[0], &plan_1d_inv[0], NULL, color_space, vid_noisy, vid_basic, numerator, denominator);
 #else
 			vbm3d_2nd_step(sigma, vid_noisy, vid_basic, vid_denoised,
 					prms_2, &plan_2d[0], &plan_2d_inv[0], NULL, color_space, vid_noisy, vid_basic, numerator, denominator);
+#endif
 #endif
 			cout << "done." << endl;
 			for (unsigned k = 0; k < vid_noisy.sz.whcf; k++)
@@ -234,6 +273,16 @@ int run_vbm3d(
 					allocate_plan_2d(&plan_2d_inv[n], prms_1.k, FFTW_REDFT01,
 							prms_1.N * nb_cols * vid_noisy.sz.channels * prms_1.kt);
 				}
+#ifdef SLOW3D
+            for (unsigned n = 0; n < nb_threads; n++)
+            {
+                const unsigned nb_cols = ind_size((imCrops[n].origin_x == 0) ? 0 : prms_1.n, (imCrops[n].ending_x == imCrops[n].source_sz.width) ? (sub_noisy[n].sz.width - prms_1.k) : (sub_noisy[n].sz.width - prms_1.k - prms_1.n), prms_1.p);
+                allocate_plan_1d(&plan_1d[n], prms_1.kt, FFTW_REDFT10,
+                        prms_1.N * vid_noisy.sz.channels * prms_1.k * prms_1.k);
+                allocate_plan_1d(&plan_1d_inv[n], prms_1.kt, FFTW_REDFT01,
+                        prms_1.N * nb_cols * vid_noisy.sz.channels * prms_1.k * prms_1.k);
+            }
+#endif
 
 			//! denoising : 1st Step
 			cout << "step 1..." << endl;;
@@ -244,11 +293,21 @@ int run_vbm3d(
 				for (unsigned n = 0; n < nb_threads; n++)
 				{
 #ifdef OPTICALFLOW
-					vbm3d_1st_step(sigma, sub_noisy[n], fflow, bflow, sub_basic[n], prms_1, 
-							&plan_2d[n], &plan_2d_inv[n], &imCrops[n], color_space, vid_noisy, numerator[n], denominator[n]);
+#ifdef SLOW3D
+					vbm3d_1st_step(sigma, sub_noisy[n], fflow, bflow, sub_basic[n], prms_1,
+							&plan_2d[n], &plan_2d_inv[n], &plan_1d[n], &plan_1d_inv[n], &imCrops[n], color_space, vid_noisy, numerator[n], denominator[n]);
 #else
-					vbm3d_1st_step(sigma, sub_noisy[n], sub_basic[n], prms_1, 
+					vbm3d_1st_step(sigma, sub_noisy[n], fflow, bflow, sub_basic[n], prms_1,
 							&plan_2d[n], &plan_2d_inv[n], &imCrops[n], color_space, vid_noisy, numerator[n], denominator[n]);
+#endif
+#else
+#ifdef SLOW3D
+					vbm3d_1st_step(sigma, sub_noisy[n], sub_basic[n], prms_1,
+							&plan_2d[n], &plan_2d_inv[n], &plan_1d[n], &plan_1d_inv[n], &imCrops[n], color_space, vid_noisy, numerator[n], denominator[n]);
+#else
+					vbm3d_1st_step(sigma, sub_noisy[n], sub_basic[n], prms_1,
+							&plan_2d[n], &plan_2d_inv[n], &imCrops[n], color_space, vid_noisy, numerator[n], denominator[n]);
+#endif
 #endif
 				}
 			}
@@ -288,6 +347,16 @@ int run_vbm3d(
 					allocate_plan_2d(&plan_2d_inv[n], prms_2.k, FFTW_REDFT01,
 							prms_2.N * nb_cols * vid_noisy.sz.channels * prms_2.kt);
 				}
+#ifdef SLOW3D
+            for (unsigned n = 0; n < nb_threads; n++)
+            {
+                const unsigned nb_cols = ind_size((imCrops[n].origin_x == 0) ? 0 : prms_2.n, (imCrops[n].ending_x == imCrops[n].source_sz.width) ? (sub_noisy[n].sz.width - prms_2.k) : (sub_noisy[n].sz.width - prms_2.k - prms_2.n), prms_2.p);
+                allocate_plan_1d(&plan_1d[n], prms_2.kt, FFTW_REDFT10,
+                        prms_2.N * vid_noisy.sz.channels * prms_2.k * prms_2.k);
+                allocate_plan_1d(&plan_1d_inv[n], prms_2.kt, FFTW_REDFT01,
+                        prms_2.N * nb_cols * vid_noisy.sz.channels * prms_2.k * prms_2.k);
+            }
+#endif
 
 			//! Denoising: 2nd Step
 			cout << "step 2..." << endl;
@@ -298,11 +367,21 @@ int run_vbm3d(
 				for (unsigned n = 0; n < nb_threads; n++)
 				{
 #ifdef OPTICALFLOW
+#ifdef SLOW3D
+					vbm3d_2nd_step(sigma, sub_noisy[n], sub_basic[n], fflow, bflow, sub_denoised[n],
+							prms_2, &plan_2d[n], &plan_2d_inv[n], &plan_1d[n], &plan_1d_inv[n], &imCrops[n], color_space, vid_noisy, vid_basic, numerator[n], denominator[n]);
+#else
 					vbm3d_2nd_step(sigma, sub_noisy[n], sub_basic[n], fflow, bflow, sub_denoised[n],
 							prms_2, &plan_2d[n], &plan_2d_inv[n], &imCrops[n], color_space, vid_noisy, vid_basic, numerator[n], denominator[n]);
+#endif
+#else
+#ifdef SLOW3D
+					vbm3d_2nd_step(sigma, sub_noisy[n], sub_basic[n], sub_denoised[n],
+							prms_2, &plan_2d[n], &plan_2d_inv[n], &plan_1d[n], &plan_1d_inv[n], &imCrops[n], color_space, vid_noisy, vid_basic, numerator[n], denominator[n]);
 #else
 					vbm3d_2nd_step(sigma, sub_noisy[n], sub_basic[n], sub_denoised[n],
 							prms_2, &plan_2d[n], &plan_2d_inv[n], &imCrops[n], color_space, vid_noisy, vid_basic, numerator[n], denominator[n]);
+#endif
 #endif
 				}
 			}
@@ -347,6 +426,10 @@ int run_vbm3d(
 		{
 			fftwf_destroy_plan(plan_2d[n]);
 			fftwf_destroy_plan(plan_2d_inv[n]);
+#ifdef SLOW3D
+			fftwf_destroy_plan(plan_1d[n]);
+			fftwf_destroy_plan(plan_1d_inv[n]);
+#endif
 		}
 	fftwf_cleanup();
 
@@ -384,6 +467,10 @@ void vbm3d_1st_step(
 ,   const Parameters& prms
 ,   fftwf_plan *  plan_2d
 ,   fftwf_plan *  plan_2d_inv
+#ifdef SLOW3D
+,   fftwf_plan *  plan_1d
+,   fftwf_plan *  plan_1d_inv
+#endif
 ,   VideoUtils::CropPosition* crop
 ,   const unsigned color_space
 ,   Video<float>& originalVideo
@@ -482,11 +569,21 @@ void vbm3d_1st_step(
 
 				//! Update of table_2D
 				if (prms.T_2D == DCT)
+#ifdef MOTIONCOMP
+					dct_2d_process(table_2D, originalVideo, patch_table[ind_j], plan_2d,
+							prms.k, prms.kt, coef_norm, fflow, bflow);
+#else
 					dct_2d_process(table_2D, originalVideo, patch_table[ind_j], plan_2d,
 							prms.k, prms.kt, coef_norm);
+#endif
 				else if (prms.T_2D == BIOR)
+#ifdef MOTIONCOMP
+					bior_2d_process(table_2D, originalVideo, patch_table[ind_j], prms.n, 
+							prms.k, prms.kt, lpd, hpd, fflow, bflow);
+#else
 					bior_2d_process(table_2D, originalVideo, patch_table[ind_j], prms.n, 
 							prms.k, prms.kt, lpd, hpd);
+#endif
 
 				//! Build of the 3D group
 				vector<float> group_3D(vid_noisy.sz.channels * nSx_r * kHard_2_t, 0.0f);
@@ -498,7 +595,11 @@ void vbm3d_1st_step(
 
                 //! Transform along the temporal dimension
                 if(prms.kt > 1)
+#ifdef SLOW3D
+                    temporal_transform(group_3D, prms.k, prms.kt, vid_noisy.sz.channels, nSx_r, plan_1d);
+#else
                     temporal_transform(group_3D, prms.k, prms.kt, vid_noisy.sz.channels, nSx_r);
+#endif
 
 				//! HT filtering of the 3D group
 				vector<float> weight_table(vid_noisy.sz.channels);
@@ -511,7 +612,11 @@ void vbm3d_1st_step(
 
                 //! Inverse transform along the temporal dimension
                 if(prms.kt > 1)
+#ifdef SLOW3D
+                    temporal_inv_transform(group_3D, prms.k, prms.kt, vid_noisy.sz.channels, nSx_r, plan_1d_inv);
+#else
                     temporal_inv_transform(group_3D, prms.k, prms.kt, vid_noisy.sz.channels, nSx_r);
+#endif
 
 				//! Save the 3D group. The DCT 2D inverse will be done after.
 				for (unsigned c = 0; c < vid_noisy.sz.channels; c++)
@@ -545,6 +650,7 @@ void vbm3d_1st_step(
 					{
 						originalVideo.sz.coords(patch_table[ind_j][n], patch_j_r, patch_i_r, patch_t_r, patch_c_r);
 						for (unsigned t = 0; t < prms.kt; t++)
+                        {
                             for (unsigned p = 0; p < prms.k; p++)
                                 for (unsigned q = 0; q < prms.k; q++)
                                 {
@@ -554,6 +660,12 @@ void vbm3d_1st_step(
                                     denominator(patch_j_r+q, patch_i_r+p, patch_t_r+t, c) += kaiser_window[p * prms.k + q]
                                         * wx_r_table[c + ind_j * vid_noisy.sz.channels];
                                 }
+#ifdef MOTIONCOMP
+                            unsigned old = patch_j_r;
+                            patch_j_r = (unsigned) std::min(std::max((int)(patch_j_r + std::round(fflow(patch_j_r + prms.k/2,patch_i_r + prms.k/2,patch_t_r+t,0))), 0), (int)(vid.sz.width - prms.k));
+                            patch_i_r = (unsigned) std::min(std::max((int)(patch_i_r + std::round(fflow(old + prms.k/2,patch_i_r + prms.k/2,patch_t_r+t,1))), 0), (int)(vid.sz.height - prms.k));
+#endif
+                        }
 					}
 				}
 
@@ -596,6 +708,10 @@ void vbm3d_2nd_step(
 ,   const Parameters& prms
 ,   fftwf_plan *  plan_2d
 ,   fftwf_plan *  plan_2d_inv
+#ifdef SLOW3D
+,   fftwf_plan *  plan_1d
+,   fftwf_plan *  plan_1d_inv
+#endif
 ,   VideoUtils::CropPosition* crop
 ,   const unsigned color_space
 ,   Video<float>& originalVideo_noisy
@@ -696,17 +812,31 @@ void vbm3d_2nd_step(
 				//! Update of DCT_table_2D
 				if (prms.T_2D == DCT)
 				{
+#ifdef MOTIONCOMP
+					dct_2d_process(table_2D_vid, originalVideo_noisy, patch_table[ind_j], plan_2d,
+							prms.k, prms.kt, coef_norm, fflow, bflow);
+					dct_2d_process(table_2D_est, originalVideo_basic, patch_table[ind_j], plan_2d,
+							prms.k, prms.kt, coef_norm, fflow, bflow);
+#else
 					dct_2d_process(table_2D_vid, originalVideo_noisy, patch_table[ind_j], plan_2d,
 							prms.k, prms.kt, coef_norm);
 					dct_2d_process(table_2D_est, originalVideo_basic, patch_table[ind_j], plan_2d,
 							prms.k, prms.kt, coef_norm);
+#endif
 				}
 				else if (prms.T_2D == BIOR)
 				{
-					bior_2d_process(table_2D_vid, originalVideo_noisy, patch_table[ind_j], prms.n, 
+#ifdef MOTIONCOMP
+					bior_2d_process(table_2D_vid, originalVideo_noisy, patch_table[ind_j], prms.n,
+							prms.k, prms.kt, lpd, hpd, fflow, bflow);
+					bior_2d_process(table_2D_est, originalVideo_basic, patch_table[ind_j], prms.n,
+							prms.k, prms.kt, lpd, hpd, fflow, bflow);
+#else
+					bior_2d_process(table_2D_vid, originalVideo_noisy, patch_table[ind_j], prms.n,
 							prms.k, prms.kt, lpd, hpd);
 					bior_2d_process(table_2D_est, originalVideo_basic, patch_table[ind_j], prms.n,
 							prms.k, prms.kt, lpd, hpd);
+#endif
 				}
 
 				//! Build of the 3D group
@@ -727,8 +857,13 @@ void vbm3d_2nd_step(
                 //! Transform along the temporal dimension
                 if(prms.kt > 1)
                 {
+#ifdef SLOW3D
+                    temporal_transform(group_3D_est, prms.k, prms.kt, vid_noisy.sz.channels, nSx_r, plan_1d);
+                    temporal_transform(group_3D_vid, prms.k, prms.kt, vid_noisy.sz.channels, nSx_r, plan_1d);
+#else
                     temporal_transform(group_3D_est, prms.k, prms.kt, vid_noisy.sz.channels, nSx_r);
                     temporal_transform(group_3D_vid, prms.k, prms.kt, vid_noisy.sz.channels, nSx_r);
+#endif
                 }
 
 				//! Wiener filtering of the 3D group
@@ -743,8 +878,13 @@ void vbm3d_2nd_step(
                 //! Transform along the temporal dimension
                 if(prms.kt > 1)
                 {
+#ifdef SLOW3D
+                    temporal_inv_transform(group_3D_est, prms.k, prms.kt, vid_noisy.sz.channels, nSx_r, plan_1d_inv);
+                    temporal_inv_transform(group_3D_vid, prms.k, prms.kt, vid_noisy.sz.channels, nSx_r, plan_1d_inv);
+#else
                     temporal_inv_transform(group_3D_est, prms.k, prms.kt, vid_noisy.sz.channels, nSx_r);
                     temporal_inv_transform(group_3D_vid, prms.k, prms.kt, vid_noisy.sz.channels, nSx_r);
+#endif
                 }
 
 				//! Save the 3D group. The DCT 2D inverse will be done after.
@@ -778,6 +918,7 @@ void vbm3d_2nd_step(
 					{
 						originalVideo_noisy.sz.coords(patch_table[ind_j][n], patch_j_r, patch_i_r, patch_t_r, patch_c_r);
 						for (unsigned t = 0; t < prms.kt; t++)
+                        {
                             for (unsigned p = 0; p < prms.k; p++)
                                 for (unsigned q = 0; q < prms.k; q++)
                                 {
@@ -787,6 +928,12 @@ void vbm3d_2nd_step(
                                     denominator(patch_j_r+q, patch_i_r+p, patch_t_r+t, c) += kaiser_window[p * prms.k + q]
                                         * wx_r_table[c + ind_j * vid_noisy.sz.channels];
                                 }
+#ifdef MOTIONCOMP
+                            unsigned old = patch_j_r;
+                            patch_j_r = (unsigned) std::min(std::max((int)(patch_j_r + std::round(fflow(patch_j_r + prms.k/2,patch_i_r + prms.k/2,patch_t_r+t,0))), 0), (int)(vid.sz.width - prms.k));
+                            patch_i_r = (unsigned) std::min(std::max((int)(patch_i_r + std::round(fflow(old + prms.k/2,patch_i_r + prms.k/2,patch_t_r+t,1))), 0), (int)(vid.sz.height - prms.k));
+#endif
+                        }
 					}
 				}
 				dec += nSx_r * vid_noisy.sz.channels * kWien_2_t;
@@ -802,6 +949,9 @@ inline float patchDistance(
 , 	const Video<float>& vid
 , 	int sizePatch
 , 	int sizePatchT
+#ifdef MOTIONCOMP
+,   Video<float> &fflow
+#endif
 ){
 	unsigned px, py, pt, pc;
 	vid.sz.coords(patch1, px, py, pt, pc);
@@ -813,12 +963,22 @@ inline float patchDistance(
 	const int sPt = sizePatchT;
 
 	float dist = 0.f, dif;
-	for (unsigned hc = 0; hc < vid.sz.channels; ++hc)
     for (unsigned ht = 0; ht < sPt; ht++)
-    for (unsigned hy = 0; hy < sPx; hy++)
-    for (unsigned hx = 0; hx < sPx; hx++)
-					dist += (dif = (vid(px + hx, py + hy, pt + ht, hc)
-							- vid(qx + hx, qy + hy, qt + ht, hc))) * dif;
+    {
+        for (unsigned hc = 0; hc < vid.sz.channels; ++hc)
+        for (unsigned hy = 0; hy < sPx; hy++)
+        for (unsigned hx = 0; hx < sPx; hx++)
+            dist += (dif = (vid(px + hx, py + hy, pt + ht, hc)
+                        - vid(qx + hx, qy + hy, qt + ht, hc))) * dif;
+#ifdef MOTIONCOMP
+        unsigned old = px;
+        px = (unsigned) std::min(std::max((int)(px + std::round(fflow(px + kHW/2,py + kHW/2,pt+ht,0))), 0), (int)(vid.sz.width - kHW));
+        py = (unsigned) std::min(std::max((int)(py + std::round(fflow(old + kHW/2,py + kHW/2,pt+ht,1))), 0), (int)(vid.sz.height - kHW));
+        old = qx;
+        qx = (unsigned) std::min(std::max((int)(qx + std::round(fflow(qx + kHW/2,qy + kHW/2,qt+ht,0))), 0), (int)(vid.sz.width - kHW));
+        qy = (unsigned) std::min(std::max((int)(qy + std::round(fflow(old + kHW/2,qy + kHW/2,qt+ht,1))), 0), (int)(vid.sz.height - kHW));
+#endif
+    }
 	return dist / (sPx * sPx * sPt * vid.sz.channels) / (255.f*255.f);
 }
 
@@ -833,6 +993,9 @@ inline void localSearch(
 , 	const Video<float>& vid
 , 	std::unordered_map<unsigned, int>& alreadySeen
 , 	std::vector<std::pair<float, unsigned> >& bestPatches
+#ifdef MOTIONCOMP
+,   Video<float> &fflow
+#endif
 ){
 	int sWx = s;
 	int sWy = s;
@@ -872,7 +1035,11 @@ inline void localSearch(
 			//! Save distance and corresponding patch index
 			int seen = (alreadySeen[currentPatch]++);
 			if(seen == 0)
+#ifdef MOTIONCOMP
+				distance.push_back((qx == rpx && qy == rpy) ? std::make_pair(patchDistance(rpidx, currentPatch, vid, sPx, sPt, fflow) - d, currentPatch):std::make_pair(patchDistance(rpidx, currentPatch, vid, sPx, sPt, fflow), currentPatch));
+#else
 				distance.push_back((qx == rpx && qy == rpy) ? std::make_pair(patchDistance(rpidx, currentPatch, vid, sPx, sPt) - d, currentPatch):std::make_pair(patchDistance(rpidx, currentPatch, vid, sPx, sPt), currentPatch));
+#endif
 		}
 
 	int nbCandidates = std::min(Nb, (unsigned)distance.size());
@@ -905,7 +1072,11 @@ int computeSimilarPatches(
 	unsigned px, py, pt, pc;
 
 	//! Search in the current frame
+#ifdef MOTIONCOMP
+	localSearch(pidx, pidx, prms.Ns, prms.k, prms.kt, prms.Nb, prms.d, vid, alreadySeen, bestPatches, fflow);
+#else
 	localSearch(pidx, pidx, prms.Ns, prms.k, prms.kt, prms.Nb, prms.d, vid, alreadySeen, bestPatches);
+#endif
 
 	//! Search in the following frames (centered on the matches)
 	int finalFrame = std::min(rpt + prms.Nf, vid.sz.frames - prms.kt) - rpt;	
@@ -916,7 +1087,11 @@ int computeSimilarPatches(
         px = std::min(std::max((int)(px + std::round(fflow(px + prms.k/2,py + prms.k/2,pt,0))), 0), (int)(vid.sz.width - prms.k));
         py = std::min(std::max((int)(py + std::round(fflow(px + prms.k/2,py + prms.k/2,pt,1))), 0), (int)(vid.sz.height - prms.k));
         preIndex = vid.sz.index(px, py, pt + 1, pc);
+#ifdef MOTIONCOMP
+        localSearch(preIndex, pidx, prms.Npr, prms.k, prms.kt, prms.Nb, prms.d, vid, alreadySeen, bestPatches, fflow);
+#else
         localSearch(preIndex, pidx, prms.Npr, prms.k, prms.kt, prms.Nb, prms.d, vid, alreadySeen, bestPatches);
+#endif
 	}
 
 	//! Search in the previous frames (centered on the backward optical flow)
@@ -928,7 +1103,11 @@ int computeSimilarPatches(
         px = std::min(std::max((int)(px + std::round(bflow(px + prms.k/2,py + prms.k/2,pt-1,0))), 0), (int)(vid.sz.width - prms.k));
         py = std::min(std::max((int)(py + std::round(bflow(px + prms.k/2,py + prms.k/2,pt-1,1))), 0), (int)(vid.sz.height - prms.k));
         preIndex = vid.sz.index(px, py, pt - 1, pc);
+#ifdef MOTIONCOMP
+        localSearch(preIndex, pidx, prms.Npr, prms.k, prms.kt, prms.Nb, prms.d, vid, alreadySeen, bestPatches, fflow);
+#else
         localSearch(preIndex, pidx, prms.Npr, prms.k, prms.kt, prms.Nb, prms.d, vid, alreadySeen, bestPatches);
+#endif
 	}
 
 	const unsigned nSimP = std::min(prms.N, (unsigned)bestPatches.size());
@@ -1094,6 +1273,9 @@ void dct_2d_process(
 ,   const unsigned kHW
 ,   const unsigned ktHW
 ,   vector<float> const& coef_norm
+#ifdef MOTIONCOMP
+,   Video<float> &fflow
+#endif
 ){
 	//! Declarations
 	const unsigned kHW_2 = kHW * kHW;
@@ -1112,10 +1294,17 @@ void dct_2d_process(
 			unsigned i,j,t,tempc;
 			vid.sz.coords(patch_table[n], i, j, t, tempc);
 			for (unsigned ht = 0; ht < ktHW; ht++)
+            {
                 for (unsigned p = 0; p < kHW; p++)
                     for (unsigned q = 0; q < kHW; q++)
                         vec[p * kHW + q + ht * kHW_2 + dc_p + n * kHW_2_t] =
                             vid(i+q,j+p,t+ht,c);
+#ifdef MOTIONCOMP
+                unsigned oldi = i;
+                i = (unsigned) std::min(std::max((int)(i + std::round(fflow(i + kHW/2,j + kHW/2,t+ht,0))), 0), (int)(vid.sz.width - kHW));
+                j = (unsigned) std::min(std::max((int)(j + std::round(fflow(oldi + kHW/2,j + kHW/2,t+ht,1))), 0), (int)(vid.sz.height - kHW));
+#endif
+            }
 		}
 	}
 
@@ -1175,12 +1364,17 @@ void bior_2d_process(
 		const unsigned dc_p = c * kHW_2_t * patch_table.size();
 		for(unsigned n = 0; n < patch_table.size(); ++n)
 		{
+            unsigned i,j,t,tempc;
+            vid.sz.coords(patch_table[n], j, i ,t, tempc);
             for(unsigned ht = 0; ht < ktHW; ++ht)
             {
-                unsigned i,j,t,tempc;
-                vid.sz.coords(patch_table[n], j, i ,t, tempc);
                 bior_2d_forward(vid, bior_table_2D, kHW, j, i, t+ht, c,
                         dc_p + n * kHW_2_t + ht * kHW_2, lpd, hpd);
+#ifdef MOTIONCOMP
+                unsigned oldi = i;
+                i = (unsigned) std::min(std::max((int)(i + std::round(fflow(i + kHW/2,j + kHW/2,t+ht,0))), 0), (int)(vid.sz.width - kHW));
+                j = (unsigned) std::min(std::max((int)(j + std::round(fflow(oldi + kHW/2,j + kHW/2,t+ht,1))), 0), (int)(vid.sz.height - kHW));
+#endif
             }
 		}
 	}
@@ -1664,6 +1858,7 @@ void preProcess(
 		}
 }
 
+#ifndef SLOW3D
 // Functions optimized for a temporal dimension equal to one
 void temporal_transform(
 		std::vector<float>& group_3D
@@ -1714,3 +1909,83 @@ void temporal_inv_transform(
 		}
 	}
 }
+#else
+// Generic (but slow) functions for any temporal dimension
+void temporal_transform(
+		std::vector<float>& group_3D
+		,   const unsigned kHW
+		,   const unsigned ktHW
+		,   const unsigned chnls
+		,   const unsigned nSx_r
+        ,   fftwf_plan * plan
+		){
+	//! Declarations
+	const unsigned kHW_2 = kHW * kHW;
+	const unsigned kHW_2_t = kHW_2 * ktHW;
+    const float norm = 1./sqrt(ktHW);
+
+	//! Allocating Memory
+	float* vec = (float*) fftwf_malloc(size * sizeof(float));
+	float* dct = (float*) fftwf_malloc(size * sizeof(float));
+
+    //! Load data
+	for (unsigned c = 0; c < chnls; c++)
+	{
+        const unsigned dc_p = c * kHW_2_t * nSx_r;
+        for(unsigned n = 0; n < nSx_r; ++n)
+		for(unsigned k = 0; k < kHW_2; ++k)
+            vec[(p * kHW + q)*ktHW + ht + dc_p + n * kHW_2_t] = group_3D[n + k*nSx_r + c*kHW_2_t*nSx_r];
+	}
+
+	//! Getting the result
+	for (unsigned c = 0; c < vid.sz.channels; c++)
+	{
+		const unsigned dc_p = c * kHW_2_t * patch_table.size();
+		for(unsigned n = 0; n < patch_table.size(); ++n)
+			for (unsigned kt = 0; kt < ktHW; kt++)
+                for (unsigned k = 0; k < kHW_2; k++)
+                    group_3D[n + k*nSx_r + c*kHW_2_t*nSx_r] =
+                        dct[(p * kHW + q)*ktHW + ht + dc_p + n * kHW_2_t] * coef_norm[k];
+	}
+	fftwf_free(dct);
+}
+
+void temporal_inv_transform(
+		std::vector<float>& group_3D
+		,   const unsigned kHW
+		,   const unsigned ktHW
+		,   const unsigned chnls
+		,   const unsigned nSx_r
+        ,   fftwf_plan * plan
+		){
+	//! Declarations
+	const unsigned kHW_2 = kHW * kHW;
+	const unsigned kHW_2_t = kHW_2 * ktHW;
+    const float norm = 1./sqrt(ktHW);
+
+	//! Allocating Memory
+	float* vec = (float*) fftwf_malloc(size * sizeof(float));
+	float* dct = (float*) fftwf_malloc(size * sizeof(float));
+
+    //! Load data
+	for (unsigned c = 0; c < chnls; c++)
+	{
+        const unsigned dc_p = c * kHW_2_t * nSx_r;
+        for(unsigned n = 0; n < nSx_r; ++n)
+		for(unsigned k = 0; k < kHW_2; ++k)
+            vec[(p * kHW + q)*ktHW + ht + dc_p + n * kHW_2_t] = group_3D[n + k*nSx_r + c*kHW_2_t*nSx_r];
+	}
+
+	//! Getting the result
+	for (unsigned c = 0; c < vid.sz.channels; c++)
+	{
+		const unsigned dc_p = c * kHW_2_t * patch_table.size();
+		for(unsigned n = 0; n < patch_table.size(); ++n)
+			for (unsigned kt = 0; kt < ktHW; kt++)
+                for (unsigned k = 0; k < kHW_2; k++)
+                    group_3D[n + k*nSx_r + c*kHW_2_t*nSx_r] =
+                        dct[(p * kHW + q)*ktHW + ht + dc_p + n * kHW_2_t] * coef_norm[k];
+	}
+	fftwf_free(dct);
+}
+#endif

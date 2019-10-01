@@ -23,30 +23,40 @@ COMPILATION
 
 The code is compilable on Unix/Linux and hopefully on Mac OS (not tested!). 
 
-**Compilation:** requires the make program.
+**Compilation:** requires the cmake and make programs.
 
-**Dependencies:** FFTW3 and OpenMP [optional]. 
+**Dependencies:** FFTW3 and OpenMP [can be disabled]. 
 For image i/o we use [Enric Meinhardt's iio](https://github.com/mnhrdt/iio),
 which requires libpng, libtiff and libjpeg.
  
-Compile the source code using make.
+Configure and compile the source code using cmake and make.  It is recommended
+that you create a folder for building:
 
 UNIX/LINUX/MAC:
 ```
+$ mkdir build; cd build
+$ cmake ..
 $ make
 ```
 
-Binaries will be created in the current folder.
+Binaries will be created in `build/bin folder`.
 
 NOTE: By default, the code is compiled with OpenMP multithreaded
-parallelization disabled. If your system supports it you can activate it 
-by specifying during the compilation with:
-```
-$ make OMP=1
-``` 
+parallelization enabled (if your system supports it). 
 The code will then use the maximum number of thread available on your machine (up to 32). 
 This can be reduced by changing the maximum number of threads allowed in lines 126 and 127 
 of `vbm3d.cpp`.
+
+Different options can be activated during compilation (corresponding to different improvements
+suggested in the article). The default behaviour has every option off by default.
+```
+cmake .. -DSLOW3D=OFF -DMOTIONCOMP=OFF -DOPTICALFLOW=OFF
+```
+
+The options are the following:
+* `-DSLOW3D=1` allow the temporal dimension to be any value. Otherwise the maximum value is 2
+* `-DOPTICALFLOW=1` activate optical flow.
+* `-MOTIONCOMP=1` activate motion compensation. This option automatically activate optical flow.
 
 USAGE
 -----

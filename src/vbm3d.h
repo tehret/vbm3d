@@ -48,6 +48,10 @@ void vbm3d_1st_step(
 ,   const Parameters& prms
 ,   fftwf_plan *  plan_2d
 ,   fftwf_plan *  plan_2d_inv
+#ifdef SLOW3D
+,   fftwf_plan *  plan_1d
+,   fftwf_plan *  plan_1d_inv
+#endif
 ,   VideoUtils::CropPosition* crop
 ,   const unsigned color_space
 ,   Video<float>& originalVideo
@@ -68,6 +72,10 @@ void vbm3d_2nd_step(
 ,   const Parameters& prms
 ,   fftwf_plan *  plan_2d
 ,   fftwf_plan *  plan_2d_inv
+#ifdef SLOW3D
+,   fftwf_plan *  plan_1d
+,   fftwf_plan *  plan_1d_inv
+#endif
 ,   VideoUtils::CropPosition* crop
 ,   const unsigned color_space
 ,   Video<float>& originalVideo_noisy
@@ -85,6 +93,9 @@ void dct_2d_process(
 ,   const unsigned kHW
 ,   const unsigned ktHW
 ,   std::vector<float> const& coef_norm
+#ifdef MOTIONCOMP
+,   Video<float> &fflow
+#endif
 );
 
 int computeSimilarPatches(
@@ -109,6 +120,9 @@ void bior_2d_process(
 ,   const unsigned ktHW
 ,   std::vector<float> &lpd
 ,   std::vector<float> &hpd
+#ifdef MOTIONCOMP
+,   Video<float> &fflow
+#endif
 );
 
 void dct_2d_inv(
@@ -196,6 +210,7 @@ void bior1_5_transform(
 ,   const unsigned N_o
 );
 
+#ifndef SLOW3D
 void temporal_transform(
     std::vector<float>& group_3D
 ,   const unsigned kHW
@@ -211,6 +226,25 @@ std::vector<float>& group_3D
 ,   const unsigned chnls
 ,   const unsigned nSx_r
 );
+#else
+void temporal_transform(
+std::vector<float>& group_3D
+,   const unsigned kHW
+,   const unsigned ktHW
+,   const unsigned chnls
+,   const unsigned nSx_r
+,   fftwf_plan * plan
+);
+
+void temporal_inv_transform(
+std::vector<float>& group_3D
+,   const unsigned kHW
+,   const unsigned ktHW
+,   const unsigned chnls
+,   const unsigned nSx_r
+,   fftwf_plan * plan
+);
+#endif
 
 /** ---------------------------------- **/
 /** - Preprocessing / Postprocessing - **/
