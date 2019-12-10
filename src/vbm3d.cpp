@@ -149,21 +149,20 @@ int run_vbm3d(
 
 		if(prms_1.k > 0)
 		{
+            const unsigned nb_cols = ind_size(0, vid_noisy.sz.width - prms_1.k, prms_1.p);
 			//! Allocating Plan for FFTW process
 			if (prms_1.T_2D == DCT)
 			{
-				const unsigned nb_cols = ind_size(0, vid_noisy.sz.width - prms_1.k, prms_1.p);
 				allocate_plan_2d(&plan_2d[0], prms_1.k, FFTW_REDFT10,
 						prms_1.N * vid_noisy.sz.channels * prms_1.kt);
 				allocate_plan_2d(&plan_2d_inv[0], prms_1.k, FFTW_REDFT01,
 						prms_1.N * nb_cols * vid_noisy.sz.channels * prms_1.kt);
 			}
 #ifdef SLOW3D
-            const unsigned nb_cols = ind_size(0, vid_noisy.sz.width - prms_1.k, prms_1.p);
             allocate_plan_1d(&plan_1d[0], prms_1.kt, FFTW_REDFT10,
                     prms_1.N * vid_noisy.sz.channels * prms_1.k * prms_1.k);
             allocate_plan_1d(&plan_1d_inv[0], prms_1.kt, FFTW_REDFT01,
-                    prms_1.N * nb_cols * vid_noisy.sz.channels * prms_1.k * prms_1.k);
+                    prms_1.N * vid_noisy.sz.channels * prms_1.k * prms_1.k);
 #endif
 
 			//! Denoising, 1st Step
@@ -195,21 +194,20 @@ int run_vbm3d(
 
 		if(prms_2.k > 0)
 		{
+            const unsigned nb_cols = ind_size(0, (vid_basic.sz.width - prms_2.k), prms_2.p);
 			//! Allocating Plan for FFTW process
 			if (prms_2.T_2D == DCT)
 			{
-				const unsigned nb_cols = ind_size(0, (vid_basic.sz.width - prms_2.k), prms_2.p);
 				allocate_plan_2d(&plan_2d[0], prms_2.k, FFTW_REDFT10,
 						prms_2.N * vid_noisy.sz.channels * prms_2.kt);
 				allocate_plan_2d(&plan_2d_inv[0], prms_2.k, FFTW_REDFT01,
 						prms_2.N * nb_cols * vid_noisy.sz.channels * prms_2.kt);
 			}
 #ifdef SLOW3D
-            const unsigned nb_cols = ind_size(0, (vid_basic.sz.width - prms_2.k), prms_2.p);
             allocate_plan_1d(&plan_1d[0], prms_2.kt, FFTW_REDFT10,
                     prms_2.N * vid_noisy.sz.channels * prms_2.k * prms_2.k);
             allocate_plan_1d(&plan_1d_inv[0], prms_2.kt, FFTW_REDFT01,
-                    prms_2.N * nb_cols * vid_noisy.sz.channels * prms_2.k * prms_2.k);
+                    prms_2.N * vid_noisy.sz.channels * prms_2.k * prms_2.k);
 #endif
 
 			//! Denoising, 2nd Step
@@ -280,7 +278,7 @@ int run_vbm3d(
                 allocate_plan_1d(&plan_1d[n], prms_1.kt, FFTW_REDFT10,
                         prms_1.N * vid_noisy.sz.channels * prms_1.k * prms_1.k);
                 allocate_plan_1d(&plan_1d_inv[n], prms_1.kt, FFTW_REDFT01,
-                        prms_1.N * nb_cols * vid_noisy.sz.channels * prms_1.k * prms_1.k);
+                        prms_1.N * vid_noisy.sz.channels * prms_1.k * prms_1.k);
             }
 #endif
 
@@ -571,7 +569,7 @@ void vbm3d_1st_step(
 				if (prms.T_2D == DCT)
 #ifdef MOTIONCOMP
 					dct_2d_process(table_2D, originalVideo, patch_table[ind_j], plan_2d,
-							prms.k, prms.kt, coef_norm, fflow, bflow);
+							prms.k, prms.kt, coef_norm, fflow);
 #else
 					dct_2d_process(table_2D, originalVideo, patch_table[ind_j], plan_2d,
 							prms.k, prms.kt, coef_norm);
@@ -579,7 +577,7 @@ void vbm3d_1st_step(
 				else if (prms.T_2D == BIOR)
 #ifdef MOTIONCOMP
 					bior_2d_process(table_2D, originalVideo, patch_table[ind_j], prms.n, 
-							prms.k, prms.kt, lpd, hpd, fflow, bflow);
+							prms.k, prms.kt, lpd, hpd, fflow);
 #else
 					bior_2d_process(table_2D, originalVideo, patch_table[ind_j], prms.n, 
 							prms.k, prms.kt, lpd, hpd);
@@ -596,7 +594,7 @@ void vbm3d_1st_step(
                 //! Transform along the temporal dimension
                 if(prms.kt > 1)
 #ifdef SLOW3D
-                    temporal_transform(group_3D, prms.k, prms.kt, vid_noisy.sz.channels, nSx_r, plan_1d);
+                    temporal_transform(group_3D, prms.k, prms.kt, vid_noisy.sz.channels, nSx_r, prms.N, plan_1d);
 #else
                     temporal_transform(group_3D, prms.k, prms.kt, vid_noisy.sz.channels, nSx_r);
 #endif
@@ -613,7 +611,7 @@ void vbm3d_1st_step(
                 //! Inverse transform along the temporal dimension
                 if(prms.kt > 1)
 #ifdef SLOW3D
-                    temporal_inv_transform(group_3D, prms.k, prms.kt, vid_noisy.sz.channels, nSx_r, plan_1d_inv);
+                    temporal_inv_transform(group_3D, prms.k, prms.kt, vid_noisy.sz.channels, nSx_r, prms.N, plan_1d_inv);
 #else
                     temporal_inv_transform(group_3D, prms.k, prms.kt, vid_noisy.sz.channels, nSx_r);
 #endif
@@ -649,7 +647,7 @@ void vbm3d_1st_step(
 					for (unsigned n = 0; n < nSx_r; n++)
 					{
 						originalVideo.sz.coords(patch_table[ind_j][n], patch_j_r, patch_i_r, patch_t_r, patch_c_r);
-						for (unsigned t = 0; t < prms.kt; t++)
+                        for (unsigned t = 0; t < prms.kt; t++)
                         {
                             for (unsigned p = 0; p < prms.k; p++)
                                 for (unsigned q = 0; q < prms.k; q++)
@@ -661,9 +659,12 @@ void vbm3d_1st_step(
                                         * wx_r_table[c + ind_j * vid_noisy.sz.channels];
                                 }
 #ifdef MOTIONCOMP
-                            unsigned old = patch_j_r;
-                            patch_j_r = (unsigned) std::min(std::max((int)(patch_j_r + std::round(fflow(patch_j_r + prms.k/2,patch_i_r + prms.k/2,patch_t_r+t,0))), 0), (int)(vid.sz.width - prms.k));
-                            patch_i_r = (unsigned) std::min(std::max((int)(patch_i_r + std::round(fflow(old + prms.k/2,patch_i_r + prms.k/2,patch_t_r+t,1))), 0), (int)(vid.sz.height - prms.k));
+                            if(t < prms.kt - 1)
+                            {
+                                unsigned old = patch_j_r;
+                                patch_j_r = (unsigned) std::min(std::max((int)(patch_j_r + std::round(fflow(patch_j_r + prms.k/2,patch_i_r + prms.k/2,patch_t_r+t,0))), 0), (int)(vid_noisy.sz.width - prms.k/2 - 1)) - prms.k/2;
+                                patch_i_r = (unsigned) std::min(std::max((int)(patch_i_r + std::round(fflow(old + prms.k/2,patch_i_r + prms.k/2,patch_t_r+t,1))), 0), (int)(vid_noisy.sz.height - prms.k/2 - 1)) - prms.k/2;
+                            }
 #endif
                         }
 					}
@@ -814,9 +815,9 @@ void vbm3d_2nd_step(
 				{
 #ifdef MOTIONCOMP
 					dct_2d_process(table_2D_vid, originalVideo_noisy, patch_table[ind_j], plan_2d,
-							prms.k, prms.kt, coef_norm, fflow, bflow);
+							prms.k, prms.kt, coef_norm, fflow);
 					dct_2d_process(table_2D_est, originalVideo_basic, patch_table[ind_j], plan_2d,
-							prms.k, prms.kt, coef_norm, fflow, bflow);
+							prms.k, prms.kt, coef_norm, fflow);
 #else
 					dct_2d_process(table_2D_vid, originalVideo_noisy, patch_table[ind_j], plan_2d,
 							prms.k, prms.kt, coef_norm);
@@ -828,9 +829,9 @@ void vbm3d_2nd_step(
 				{
 #ifdef MOTIONCOMP
 					bior_2d_process(table_2D_vid, originalVideo_noisy, patch_table[ind_j], prms.n,
-							prms.k, prms.kt, lpd, hpd, fflow, bflow);
+							prms.k, prms.kt, lpd, hpd, fflow);
 					bior_2d_process(table_2D_est, originalVideo_basic, patch_table[ind_j], prms.n,
-							prms.k, prms.kt, lpd, hpd, fflow, bflow);
+							prms.k, prms.kt, lpd, hpd, fflow);
 #else
 					bior_2d_process(table_2D_vid, originalVideo_noisy, patch_table[ind_j], prms.n,
 							prms.k, prms.kt, lpd, hpd);
@@ -858,8 +859,8 @@ void vbm3d_2nd_step(
                 if(prms.kt > 1)
                 {
 #ifdef SLOW3D
-                    temporal_transform(group_3D_est, prms.k, prms.kt, vid_noisy.sz.channels, nSx_r, plan_1d);
-                    temporal_transform(group_3D_vid, prms.k, prms.kt, vid_noisy.sz.channels, nSx_r, plan_1d);
+                    temporal_transform(group_3D_est, prms.k, prms.kt, vid_noisy.sz.channels, nSx_r, prms.N, plan_1d);
+                    temporal_transform(group_3D_vid, prms.k, prms.kt, vid_noisy.sz.channels, nSx_r, prms.N, plan_1d);
 #else
                     temporal_transform(group_3D_est, prms.k, prms.kt, vid_noisy.sz.channels, nSx_r);
                     temporal_transform(group_3D_vid, prms.k, prms.kt, vid_noisy.sz.channels, nSx_r);
@@ -879,8 +880,8 @@ void vbm3d_2nd_step(
                 if(prms.kt > 1)
                 {
 #ifdef SLOW3D
-                    temporal_inv_transform(group_3D_est, prms.k, prms.kt, vid_noisy.sz.channels, nSx_r, plan_1d_inv);
-                    temporal_inv_transform(group_3D_vid, prms.k, prms.kt, vid_noisy.sz.channels, nSx_r, plan_1d_inv);
+                    temporal_inv_transform(group_3D_est, prms.k, prms.kt, vid_noisy.sz.channels, nSx_r, prms.N, plan_1d_inv);
+                    temporal_inv_transform(group_3D_vid, prms.k, prms.kt, vid_noisy.sz.channels, nSx_r, prms.N, plan_1d_inv);
 #else
                     temporal_inv_transform(group_3D_est, prms.k, prms.kt, vid_noisy.sz.channels, nSx_r);
                     temporal_inv_transform(group_3D_vid, prms.k, prms.kt, vid_noisy.sz.channels, nSx_r);
@@ -929,9 +930,12 @@ void vbm3d_2nd_step(
                                         * wx_r_table[c + ind_j * vid_noisy.sz.channels];
                                 }
 #ifdef MOTIONCOMP
-                            unsigned old = patch_j_r;
-                            patch_j_r = (unsigned) std::min(std::max((int)(patch_j_r + std::round(fflow(patch_j_r + prms.k/2,patch_i_r + prms.k/2,patch_t_r+t,0))), 0), (int)(vid.sz.width - prms.k));
-                            patch_i_r = (unsigned) std::min(std::max((int)(patch_i_r + std::round(fflow(old + prms.k/2,patch_i_r + prms.k/2,patch_t_r+t,1))), 0), (int)(vid.sz.height - prms.k));
+                            if(t < prms.kt - 1)
+                            {
+                                unsigned old = patch_j_r;
+                                patch_j_r = (unsigned) std::min(std::max((int)(patch_j_r + std::round(fflow(patch_j_r + prms.k/2,patch_i_r + prms.k/2,patch_t_r+t,0))), 0), (int)(vid_noisy.sz.width - prms.k/2 - 1)) - prms.k/2;
+                                patch_i_r = (unsigned) std::min(std::max((int)(patch_i_r + std::round(fflow(old + prms.k/2,patch_i_r + prms.k/2,patch_t_r+t,1))), 0), (int)(vid_noisy.sz.height - prms.k/2 - 1)) - prms.k/2;
+                            }
 #endif
                         }
 					}
@@ -971,12 +975,15 @@ inline float patchDistance(
             dist += (dif = (vid(px + hx, py + hy, pt + ht, hc)
                         - vid(qx + hx, qy + hy, qt + ht, hc))) * dif;
 #ifdef MOTIONCOMP
-        unsigned old = px;
-        px = (unsigned) std::min(std::max((int)(px + std::round(fflow(px + kHW/2,py + kHW/2,pt+ht,0))), 0), (int)(vid.sz.width - kHW));
-        py = (unsigned) std::min(std::max((int)(py + std::round(fflow(old + kHW/2,py + kHW/2,pt+ht,1))), 0), (int)(vid.sz.height - kHW));
-        old = qx;
-        qx = (unsigned) std::min(std::max((int)(qx + std::round(fflow(qx + kHW/2,qy + kHW/2,qt+ht,0))), 0), (int)(vid.sz.width - kHW));
-        qy = (unsigned) std::min(std::max((int)(qy + std::round(fflow(old + kHW/2,qy + kHW/2,qt+ht,1))), 0), (int)(vid.sz.height - kHW));
+        if(ht < sPt - 1)
+        {
+            unsigned old = px;
+            px = (unsigned) std::min(std::max((int)(px + std::round(fflow(px + sizePatch/2,py + sizePatch/2,pt+ht,0))), 0), (int)(vid.sz.width - sizePatch/2 - 1)) - sizePatch/2;
+            py = (unsigned) std::min(std::max((int)(py + std::round(fflow(old + sizePatch/2,py + sizePatch/2,pt+ht,1))), 0), (int)(vid.sz.height - sizePatch/2 - 1)) - sizePatch/2;
+            old = qx;
+            qx = (unsigned) std::min(std::max((int)(qx + std::round(fflow(qx + sizePatch/2,qy + sizePatch/2,qt+ht,0))), 0), (int)(vid.sz.width - sizePatch/2 - 1)) - sizePatch/2;
+            qy = (unsigned) std::min(std::max((int)(qy + std::round(fflow(old + sizePatch/2,qy + sizePatch/2,qt+ht,1))), 0), (int)(vid.sz.height - sizePatch/2 - 1)) - sizePatch/2;
+        }
 #endif
     }
 	return dist / (sPx * sPx * sPt * vid.sz.channels) / (255.f*255.f);
@@ -1300,9 +1307,12 @@ void dct_2d_process(
                         vec[p * kHW + q + ht * kHW_2 + dc_p + n * kHW_2_t] =
                             vid(i+q,j+p,t+ht,c);
 #ifdef MOTIONCOMP
-                unsigned oldi = i;
-                i = (unsigned) std::min(std::max((int)(i + std::round(fflow(i + kHW/2,j + kHW/2,t+ht,0))), 0), (int)(vid.sz.width - kHW));
-                j = (unsigned) std::min(std::max((int)(j + std::round(fflow(oldi + kHW/2,j + kHW/2,t+ht,1))), 0), (int)(vid.sz.height - kHW));
+                if(ht < ktHW - 1)
+                {
+                    unsigned oldi = i;
+                    i = (unsigned) std::min(std::max((int)(i + std::round(fflow(i + kHW/2,j + kHW/2,t+ht,0))), 0), (int)(vid.sz.width - kHW/2 - 1)) - kHW/2;
+                    j = (unsigned) std::min(std::max((int)(j + std::round(fflow(oldi + kHW/2,j + kHW/2,t+ht,1))), 0), (int)(vid.sz.height - kHW/2 - 1)) - kHW/2;
+                }
 #endif
             }
 		}
@@ -1353,6 +1363,9 @@ void bior_2d_process(
 ,   const unsigned ktHW
 ,   vector<float> &lpd
 ,   vector<float> &hpd
+#ifdef MOTIONCOMP
+,   Video<float> &fflow
+#endif
 ){
 	//! Declarations
 	const unsigned kHW_2 = kHW * kHW;
@@ -1371,9 +1384,12 @@ void bior_2d_process(
                 bior_2d_forward(vid, bior_table_2D, kHW, j, i, t+ht, c,
                         dc_p + n * kHW_2_t + ht * kHW_2, lpd, hpd);
 #ifdef MOTIONCOMP
-                unsigned oldi = i;
-                i = (unsigned) std::min(std::max((int)(i + std::round(fflow(i + kHW/2,j + kHW/2,t+ht,0))), 0), (int)(vid.sz.width - kHW));
-                j = (unsigned) std::min(std::max((int)(j + std::round(fflow(oldi + kHW/2,j + kHW/2,t+ht,1))), 0), (int)(vid.sz.height - kHW));
+                if(ht < ktHW - 1)
+                {
+                    unsigned oldi = i;
+                    i = (unsigned) std::min(std::max((int)(i + std::round(fflow(j + kHW/2,i + kHW/2,t+ht,0))), 0), (int)(vid.sz.width - kHW/2 - 1)) - kHW/2;
+                    j = (unsigned) std::min(std::max((int)(j + std::round(fflow(j + kHW/2,oldi + kHW/2,t+ht,1))), 0), (int)(vid.sz.height - kHW/2 - 1)) - kHW/2;
+                }
 #endif
             }
 		}
@@ -1917,12 +1933,15 @@ void temporal_transform(
 		,   const unsigned ktHW
 		,   const unsigned chnls
 		,   const unsigned nSx_r
+		,   const unsigned N
         ,   fftwf_plan * plan
 		){
 	//! Declarations
 	const unsigned kHW_2 = kHW * kHW;
 	const unsigned kHW_2_t = kHW_2 * ktHW;
-    const float norm = 1./sqrt(ktHW);
+    //const float norm = 1./sqrt(2*(ktHW-1));
+    const float norm = 1./sqrt(2*ktHW);
+    const unsigned size = chnls * kHW_2_t * N;
 
 	//! Allocating Memory
 	float* vec = (float*) fftwf_malloc(size * sizeof(float));
@@ -1934,18 +1953,23 @@ void temporal_transform(
         const unsigned dc_p = c * kHW_2_t * nSx_r;
         for(unsigned n = 0; n < nSx_r; ++n)
 		for(unsigned k = 0; k < kHW_2; ++k)
-            vec[(p * kHW + q)*ktHW + ht + dc_p + n * kHW_2_t] = group_3D[n + k*nSx_r + c*kHW_2_t*nSx_r];
+        for (unsigned kt = 0; kt < ktHW; kt++)
+            vec[k*ktHW + kt + dc_p + n * kHW_2_t] = group_3D[n + (k+kt*kHW_2)*nSx_r + c*kHW_2_t*nSx_r];
 	}
 
+	//! Process of all DCTs
+	fftwf_execute_r2r(*plan, vec, dct);
+	fftwf_free(vec);
+
 	//! Getting the result
-	for (unsigned c = 0; c < vid.sz.channels; c++)
+	for (unsigned c = 0; c < chnls; c++)
 	{
-		const unsigned dc_p = c * kHW_2_t * patch_table.size();
-		for(unsigned n = 0; n < patch_table.size(); ++n)
-			for (unsigned kt = 0; kt < ktHW; kt++)
-                for (unsigned k = 0; k < kHW_2; k++)
-                    group_3D[n + k*nSx_r + c*kHW_2_t*nSx_r] =
-                        dct[(p * kHW + q)*ktHW + ht + dc_p + n * kHW_2_t] * coef_norm[k];
+		const unsigned dc_p = c * kHW_2_t * nSx_r;
+		for(unsigned n = 0; n < nSx_r; ++n)
+        for (unsigned k = 0; k < kHW_2; k++)
+        for (unsigned kt = 0; kt < ktHW; kt++)
+            group_3D[n + (k+kt*kHW_2)*nSx_r + c*kHW_2_t*nSx_r] =
+                        dct[k*ktHW + kt + dc_p + n * kHW_2_t] * norm;
 	}
 	fftwf_free(dct);
 }
@@ -1956,12 +1980,15 @@ void temporal_inv_transform(
 		,   const unsigned ktHW
 		,   const unsigned chnls
 		,   const unsigned nSx_r
+		,   const unsigned N
         ,   fftwf_plan * plan
 		){
 	//! Declarations
 	const unsigned kHW_2 = kHW * kHW;
 	const unsigned kHW_2_t = kHW_2 * ktHW;
-    const float norm = 1./sqrt(ktHW);
+    //const float norm = 1./sqrt(2*(ktHW-1));
+    const float norm = 1./sqrt(2*ktHW);
+    const unsigned size = chnls * kHW_2_t * N;
 
 	//! Allocating Memory
 	float* vec = (float*) fftwf_malloc(size * sizeof(float));
@@ -1973,18 +2000,23 @@ void temporal_inv_transform(
         const unsigned dc_p = c * kHW_2_t * nSx_r;
         for(unsigned n = 0; n < nSx_r; ++n)
 		for(unsigned k = 0; k < kHW_2; ++k)
-            vec[(p * kHW + q)*ktHW + ht + dc_p + n * kHW_2_t] = group_3D[n + k*nSx_r + c*kHW_2_t*nSx_r];
+        for (unsigned kt = 0; kt < ktHW; kt++)
+            vec[k*ktHW + kt + dc_p + n * kHW_2_t] = group_3D[n + (k+kt*kHW_2)*nSx_r + c*kHW_2_t*nSx_r];
 	}
 
+	////! Process of all DCTs
+	fftwf_execute_r2r(*plan, vec, dct);
+	fftwf_free(vec);
+
 	//! Getting the result
-	for (unsigned c = 0; c < vid.sz.channels; c++)
+	for (unsigned c = 0; c < chnls; c++)
 	{
-		const unsigned dc_p = c * kHW_2_t * patch_table.size();
-		for(unsigned n = 0; n < patch_table.size(); ++n)
-			for (unsigned kt = 0; kt < ktHW; kt++)
-                for (unsigned k = 0; k < kHW_2; k++)
-                    group_3D[n + k*nSx_r + c*kHW_2_t*nSx_r] =
-                        dct[(p * kHW + q)*ktHW + ht + dc_p + n * kHW_2_t] * coef_norm[k];
+		const unsigned dc_p = c * kHW_2_t * nSx_r;
+		for(unsigned n = 0; n < nSx_r; ++n)
+        for (unsigned kt = 0; kt < ktHW; kt++)
+        for (unsigned k = 0; k < kHW_2; k++)
+            group_3D[n + (k+kt*kHW_2)*nSx_r + c*kHW_2_t*nSx_r] =
+                        dct[k*ktHW + kt + dc_p + n * kHW_2_t] * norm;
 	}
 	fftwf_free(dct);
 }
