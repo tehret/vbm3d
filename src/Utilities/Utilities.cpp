@@ -376,13 +376,14 @@ void allocate_plan_1d(
 ,   const fftwf_r2r_kind kind
 ,   const unsigned nb
 ){
-    int nb_table[1] = {N};
-    int nembed[1]   = {N * nb};
+    int nb_table[] = {N};
+    int nembed[]   = {N};
     fftwf_r2r_kind kind_table[1] = {kind};
 
     float* vec = (float*) fftwf_malloc(N * nb * sizeof(float));
     (*plan) = fftwf_plan_many_r2r(1, nb_table, nb, vec, nembed, 1, N, vec,
                                   nembed, 1, N, kind_table, FFTW_ESTIMATE);
+
     fftwf_free(vec);
 }
 

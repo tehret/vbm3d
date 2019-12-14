@@ -233,6 +233,7 @@ std::vector<float>& group_3D
 ,   const unsigned ktHW
 ,   const unsigned chnls
 ,   const unsigned nSx_r
+,   const unsigned N
 ,   fftwf_plan * plan
 );
 
@@ -242,6 +243,7 @@ std::vector<float>& group_3D
 ,   const unsigned ktHW
 ,   const unsigned chnls
 ,   const unsigned nSx_r
+,   const unsigned N
 ,   fftwf_plan * plan
 );
 #endif
