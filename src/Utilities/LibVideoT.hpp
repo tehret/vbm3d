@@ -87,7 +87,7 @@ struct VideoSize
 	//! Returns index
 	inline unsigned index(unsigned x, unsigned y, unsigned t, unsigned c) const
 	{
-		assert(x < width && y < height && t < frames && c < channels);
+		//assert(x < width && y < height && t < frames && c < channels);
 		return t*whc + c*wh + y*width + x;
 	}
 
@@ -550,8 +550,8 @@ namespace VideoUtils
 		o_vidNoisy = i_vid;
 		//mt_init_genrand((unsigned long int) time (NULL) +
 		//                (unsigned long int) getpid());
-		mt_init_genrand((unsigned long int) time (NULL));
-		//mt_init_genrand(0); printf("\x1b[33;1mWarning:\x1b[0m random generator seed is 0\n");
+		//mt_init_genrand((unsigned long int) time (NULL));
+		mt_init_genrand(0); printf("\x1b[33;1mWarning:\x1b[0m random generator seed is 0\n");
 
 		//! Add noise
 		for (unsigned k = 0; k < i_vid.sz.whcf; k++)
@@ -904,7 +904,6 @@ namespace VideoUtils
 	template <class T>
 	void subDivideTight(
 		Video<T> const& i_vid
-	,	std::vector<Video<T> > &o_vidSub
 	,  std::vector<CropPosition> &o_crops
 	,	const int p_N
 	,	const int p_nb
@@ -925,7 +924,6 @@ namespace VideoUtils
 		const int hTmp = ceil(float(i_vid.sz.height) / float(nH)); //     borders
 
 		o_crops.resize(p_nb);
-		o_vidSub.resize(p_nb);
 		for (int p = 0, n = 0; p < nH; p++)
 		for (int q = 0;        q < nW; q++, n++)
 		{
@@ -941,9 +939,6 @@ namespace VideoUtils
 			o_crops[n].ending_x = std::min((int)i_vid.sz.width , (q+1) * wTmp + p_N);
 			o_crops[n].ending_y = std::min((int)i_vid.sz.height, (p+1) * hTmp + p_N);
 			o_crops[n].ending_t = i_vid.sz.frames;
-
-			//! Crop using symmetric boundary conditions
-			VideoUtils::crop(i_vid, o_vidSub[n], o_crops[n]);
 
 			//! Add information about the tiling
 			o_crops[n].tile_x = q;

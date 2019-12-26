@@ -24,13 +24,13 @@
 //! Main function
 int run_vbm3d(
     const float sigma
-,   Video<float> &img_noisy
+,   Video<float> &vid_noisy
 #ifdef OPTICALFLOW
 ,   Video<float> &fflow
 ,   Video<float> &bflow
 #endif
-,   Video<float> &img_basic
-,   Video<float> &img_denoised
+,   Video<float> &vid_basic
+,   Video<float> &vid_denoised
 ,   const Parameters& prms_1
 ,   const Parameters& prms_2
 ,   const unsigned color_space
@@ -39,12 +39,11 @@ int run_vbm3d(
 //! 1st step of VBM3D
 void vbm3d_1st_step(
     const float sigma
-,   Video<float> const& img_noisy
+,   Video<float> const& vid_noisy
 #ifdef OPTICALFLOW
 ,   Video<float> &fflow
 ,   Video<float> &bflow
 #endif
-,   Video<float> &img_basic
 ,   const Parameters& prms
 ,   fftwf_plan *  plan_2d
 ,   fftwf_plan *  plan_2d_inv
@@ -54,7 +53,6 @@ void vbm3d_1st_step(
 #endif
 ,   VideoUtils::CropPosition* crop
 ,   const unsigned color_space
-,   Video<float>& originalVideo
 ,   Video<float>& numberator
 ,   Video<float>& denominator
 );
@@ -62,13 +60,12 @@ void vbm3d_1st_step(
 //! 2nd step of VBM3D
 void vbm3d_2nd_step(
     const float sigma
-,   Video<float> const& img_noisy
-,   Video<float> const& img_basic
+,   Video<float> const& vid_noisy
+,   Video<float> const& vid_basic
 #ifdef OPTICALFLOW
 ,   Video<float> &fflow
 ,   Video<float> &bflow
 #endif
-,   Video<float> &img_denoised
 ,   const Parameters& prms
 ,   fftwf_plan *  plan_2d
 ,   fftwf_plan *  plan_2d_inv
@@ -78,8 +75,6 @@ void vbm3d_2nd_step(
 #endif
 ,   VideoUtils::CropPosition* crop
 ,   const unsigned color_space
-,   Video<float>& originalVideo_noisy
-,   Video<float>& originalVideo_basic
 ,   Video<float>& numberator
 ,   Video<float>& denominator
 );
@@ -87,7 +82,7 @@ void vbm3d_2nd_step(
 //! Process 2D dct of a group of patches
 void dct_2d_process(
     std::vector<float> &DCT_table_2D
-,   Video<float> const& img
+,   Video<float> const& vid
 ,   std::vector<unsigned> const& patch_table 
 ,   fftwf_plan * plan
 ,   const unsigned kHW
@@ -113,9 +108,8 @@ int computeSimilarPatches(
 //! Process 2D bior1.5 transform of a group of patches
 void bior_2d_process(
     std::vector<float> &bior_table_2D
-,   Video<float> const& img
+,   Video<float> const& vid
 ,   std::vector<unsigned> const& patch_table 
-,   const unsigned nHW
 ,   const unsigned kHW
 ,   const unsigned ktHW
 ,   std::vector<float> &lpd

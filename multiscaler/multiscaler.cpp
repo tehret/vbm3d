@@ -138,10 +138,6 @@ void kernel_convolution(Image& image, float* kernel, int n, float offset)
   /* Allocate memory */
   float* tmp = new float[X*Y];
 
-  /* auxiliary variables for the double of the image size */
-  int nx2 = 2*X;
-  int ny2 = 2*Y;
-
   for(int c = 0; c < image.channels(); ++c)
   {
       /* x axis convolution */
