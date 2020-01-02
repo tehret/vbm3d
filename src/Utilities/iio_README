@@ -1,0 +1,22 @@
+his is a C library for reading small images in any format.
+
+To use this library, copy the "iio.c" and "iio.h" files into your source code.
+Edit the macros at the end of "iio.h" to fine-tune your library requirements.
+
+
+CODE CONTRIBUTORS
+
+Enric Meinhardt-Llopis (initial coding)
+Gabriele Facciolo (many patches, python bindings, cmake files)
+Carlo de Franchis (patches)
+Juan Cardelino (cmake configuration, bug reports)
+
+
+
+ACKNOWLEDGEMENTS (testing, corrections and bug reports)
+
+Gabriele Facciolo
+Carlo de Franchis
+Martin Etchart
+Roberto Pablo Pérez Palomares
+Nicolas Limare

@@ -46,7 +46,3 @@ add_library(multiscaler OBJECT iio.c iio.h multiscaler.cpp multiscaler.hpp Image
 add_executable(decompose decompose.cpp $<TARGET_OBJECTS:multiscaler>)
 add_executable(recompose recompose.cpp $<TARGET_OBJECTS:multiscaler>)
 add_executable(merge_coarse merge_coarse.cpp $<TARGET_OBJECTS:multiscaler>)
-# iio shared object for piio.py
-set(CMAKE_MACOSX_RPATH 1)
-ADD_LIBRARY(iio SHARED iio.c iio.h freemem.c)
-set_target_properties(iio PROPERTIES SUFFIX ".so")
