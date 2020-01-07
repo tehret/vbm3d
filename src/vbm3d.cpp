@@ -169,24 +169,24 @@ int run_vbm3d(
 			cout << "step 1..." << endl;
 #ifdef OPTICALFLOW
 #ifdef SLOW3D
-			vbm3d_1st_step(sigma, vid_noisy, fflow, bflow, vid_basic, prms_1,
-					&plan_2d[0], &plan_2d_inv[0], &plan_1d[0], &plan_1d_inv[0], NULL, color_space, vid_noisy, numerator, denominator);
+			vbm3d_1st_step(sigma, vid_noisy, fflow, bflow, prms_1,
+					&plan_2d[0], &plan_2d_inv[0], &plan_1d[0], &plan_1d_inv[0], NULL, color_space, numerator, denominator);
 #else
-			vbm3d_1st_step(sigma, vid_noisy, fflow, bflow, vid_basic, prms_1,
-					&plan_2d[0], &plan_2d_inv[0], NULL, color_space, vid_noisy, numerator, denominator);
+			vbm3d_1st_step(sigma, vid_noisy, fflow, bflow, prms_1,
+					&plan_2d[0], &plan_2d_inv[0], NULL, color_space, numerator, denominator);
 #endif
 #else
 #ifdef SLOW3D
-			vbm3d_1st_step(sigma, vid_noisy, vid_basic, prms_1,
-					&plan_2d[0], &plan_2d_inv[0], &plan_1d[0], &plan_1d_inv[0], NULL, color_space, vid_noisy, numerator, denominator);
+			vbm3d_1st_step(sigma, vid_noisy, prms_1,
+					&plan_2d[0], &plan_2d_inv[0], &plan_1d[0], &plan_1d_inv[0], NULL, color_space, numerator, denominator);
 #else
-			vbm3d_1st_step(sigma, vid_noisy, vid_basic, prms_1,
-					&plan_2d[0], &plan_2d_inv[0], NULL, color_space, vid_noisy, numerator, denominator);
+			vbm3d_1st_step(sigma, vid_noisy, prms_1,
+					&plan_2d[0], &plan_2d_inv[0], NULL, color_space, numerator, denominator);
 #endif
 #endif
 			cout << "done." << endl;
 			for (unsigned k = 0; k < vid_noisy.sz.whcf; k++)
-				vid_basic(k) = numerator(k) / denominator(k);
+				vid_basic(k) = (denominator(k) == 0) ? vid_noisy(k) : numerator(k) / denominator(k);
 		}
 		else
 			cout << "skipping 1st step." << endl;
@@ -214,25 +214,25 @@ int run_vbm3d(
 			cout << "step 2..." << endl;
 #ifdef OPTICALFLOW
 #ifdef SLOW3D
-			vbm3d_2nd_step(sigma, vid_noisy, vid_basic, fflow, bflow, vid_denoised,
-					prms_2, &plan_2d[0], &plan_2d_inv[0], &plan_1d[0], &plan_1d_inv[0], NULL, color_space, vid_noisy, vid_basic, numerator, denominator);
+			vbm3d_2nd_step(sigma, vid_noisy, vid_basic, fflow, bflow,
+					prms_2, &plan_2d[0], &plan_2d_inv[0], &plan_1d[0], &plan_1d_inv[0], NULL, color_space, numerator, denominator);
 #else
-			vbm3d_2nd_step(sigma, vid_noisy, vid_basic, fflow, bflow, vid_denoised,
-					prms_2, &plan_2d[0], &plan_2d_inv[0], NULL, color_space, vid_noisy, vid_basic, numerator, denominator);
+			vbm3d_2nd_step(sigma, vid_noisy, vid_basic, fflow, bflow,
+					prms_2, &plan_2d[0], &plan_2d_inv[0], NULL, color_space, numerator, denominator);
 #endif
 #else
 #ifdef SLOW3D
-			vbm3d_2nd_step(sigma, vid_noisy, vid_basic, vid_denoised,
-					prms_2, &plan_2d[0], &plan_2d_inv[0], &plan_1d[0], &plan_1d_inv[0], NULL, color_space, vid_noisy, vid_basic, numerator, denominator);
+			vbm3d_2nd_step(sigma, vid_noisy, vid_basic,
+					prms_2, &plan_2d[0], &plan_2d_inv[0], &plan_1d[0], &plan_1d_inv[0], NULL, color_space, numerator, denominator);
 #else
-			vbm3d_2nd_step(sigma, vid_noisy, vid_basic, vid_denoised,
-					prms_2, &plan_2d[0], &plan_2d_inv[0], NULL, color_space, vid_noisy, vid_basic, numerator, denominator);
+			vbm3d_2nd_step(sigma, vid_noisy, vid_basic,
+					prms_2, &plan_2d[0], &plan_2d_inv[0], NULL, color_space, numerator, denominator);
 #endif
 #endif
 			cout << "done." << endl;
 			for (unsigned k = 0; k < vid_noisy.sz.whcf; k++)
 			{
-				vid_denoised(k) = numerator(k) / denominator(k);
+				vid_denoised(k) = (denominator(k) == 0) ? vid_basic(k) : numerator(k) / denominator(k);
 			}
 		}
 		else
@@ -247,17 +247,10 @@ int run_vbm3d(
 	else
 	{
 		//! Cut the video in nb_threads parts
-		vector<Video<float> > sub_noisy(nb_threads);
-#ifdef OPTICALFLOW
-		vector<Video<float> > sub_fflow(nb_threads);
-		vector<Video<float> > sub_bflow(nb_threads);
-#endif
-		vector<Video<float> > sub_basic(nb_threads);
-		vector<Video<float> > sub_denoised(nb_threads);
 		vector<Video<float> > numerator(nb_threads);
 		vector<Video<float> > denominator(nb_threads);
 		std::vector<VideoUtils::CropPosition > imCrops(nb_threads);
-		VideoUtils::subDivideTight(vid_noisy, sub_noisy, imCrops, 2 * prms_1.n, nb_threads);
+		VideoUtils::subDivideTight(vid_noisy, imCrops, 2 * prms_1.n, nb_threads);
 
 		if(prms_1.k > 0)
 		{
@@ -265,7 +258,7 @@ int run_vbm3d(
 			if (prms_1.T_2D == DCT)
 				for (unsigned n = 0; n < nb_threads; n++)
 				{
-                    const unsigned nb_cols = ind_size((imCrops[n].origin_x == 0) ? 0 : prms_1.n, (imCrops[n].ending_x == imCrops[n].source_sz.width) ? (sub_noisy[n].sz.width - prms_1.k) : (sub_noisy[n].sz.width - prms_1.k - prms_1.n), prms_1.p);
+                    const unsigned nb_cols = ind_size((imCrops[n].origin_x == 0) ? 0 : prms_1.n, (imCrops[n].ending_x == imCrops[n].source_sz.width) ? ((imCrops[n].ending_x - imCrops[n].origin_x) - prms_1.k) : ((imCrops[n].ending_x - imCrops[n].origin_x) - prms_1.k - prms_1.n), prms_1.p);
 					allocate_plan_2d(&plan_2d[n], prms_1.k, FFTW_REDFT10,
 							prms_1.N * vid_noisy.sz.channels * prms_1.kt);
 					allocate_plan_2d(&plan_2d_inv[n], prms_1.k, FFTW_REDFT01,
@@ -274,7 +267,7 @@ int run_vbm3d(
 #ifdef SLOW3D
             for (unsigned n = 0; n < nb_threads; n++)
             {
-                const unsigned nb_cols = ind_size((imCrops[n].origin_x == 0) ? 0 : prms_1.n, (imCrops[n].ending_x == imCrops[n].source_sz.width) ? (sub_noisy[n].sz.width - prms_1.k) : (sub_noisy[n].sz.width - prms_1.k - prms_1.n), prms_1.p);
+                const unsigned nb_cols = ind_size((imCrops[n].origin_x == 0) ? 0 : prms_1.n, (imCrops[n].ending_x == imCrops[n].source_sz.width) ? ((imCrops[n].ending_x - imCrops[n].origin_x) - prms_1.k) : ((imCrops[n].ending_x - imCrops[n].origin_x) - prms_1.k - prms_1.n), prms_1.p);
                 allocate_plan_1d(&plan_1d[n], prms_1.kt, FFTW_REDFT10,
                         prms_1.N * vid_noisy.sz.channels * prms_1.k * prms_1.k);
                 allocate_plan_1d(&plan_1d_inv[n], prms_1.kt, FFTW_REDFT01,
@@ -284,27 +277,32 @@ int run_vbm3d(
 
 			//! denoising : 1st Step
 			cout << "step 1..." << endl;;
-#pragma omp parallel shared(sub_noisy, sub_basic, \
+#ifdef SLOW3D
+#pragma omp parallel shared(\
+		plan_2d, plan_2d_inv, plan_1d, plan_1d_inv, numerator, denominator, prms_1)
+#else
+#pragma omp parallel shared(\
 		plan_2d, plan_2d_inv, numerator, denominator, prms_1)
+#endif
 			{
 #pragma omp for schedule(dynamic)
 				for (unsigned n = 0; n < nb_threads; n++)
 				{
 #ifdef OPTICALFLOW
 #ifdef SLOW3D
-					vbm3d_1st_step(sigma, sub_noisy[n], fflow, bflow, sub_basic[n], prms_1,
-							&plan_2d[n], &plan_2d_inv[n], &plan_1d[n], &plan_1d_inv[n], &imCrops[n], color_space, vid_noisy, numerator[n], denominator[n]);
+					vbm3d_1st_step(sigma, vid_noisy, fflow, bflow, prms_1,
+							&plan_2d[n], &plan_2d_inv[n], &plan_1d[n], &plan_1d_inv[n], &imCrops[n], color_space, numerator[n], denominator[n]);
 #else
-					vbm3d_1st_step(sigma, sub_noisy[n], fflow, bflow, sub_basic[n], prms_1,
-							&plan_2d[n], &plan_2d_inv[n], &imCrops[n], color_space, vid_noisy, numerator[n], denominator[n]);
+					vbm3d_1st_step(sigma, vid_noisy, fflow, bflow, prms_1,
+							&plan_2d[n], &plan_2d_inv[n], &imCrops[n], color_space, numerator[n], denominator[n]);
 #endif
 #else
 #ifdef SLOW3D
-					vbm3d_1st_step(sigma, sub_noisy[n], sub_basic[n], prms_1,
-							&plan_2d[n], &plan_2d_inv[n], &plan_1d[n], &plan_1d_inv[n], &imCrops[n], color_space, vid_noisy, numerator[n], denominator[n]);
+					vbm3d_1st_step(sigma, vid_noisy, prms_1,
+							&plan_2d[n], &plan_2d_inv[n], &plan_1d[n], &plan_1d_inv[n], &imCrops[n], color_space, numerator[n], denominator[n]);
 #else
-					vbm3d_1st_step(sigma, sub_noisy[n], sub_basic[n], prms_1,
-							&plan_2d[n], &plan_2d_inv[n], &imCrops[n], color_space, vid_noisy, numerator[n], denominator[n]);
+					vbm3d_1st_step(sigma, vid_noisy, prms_1,
+							&plan_2d[n], &plan_2d_inv[n], &imCrops[n], color_space, numerator[n], denominator[n]);
 #endif
 #endif
 				}
@@ -320,10 +318,7 @@ int run_vbm3d(
 					den += denominator[n](k);
 				}
 				if(den == 0)
-				{
-					printf("Problem in the aggregation %f %f\n", num, den);
 					vid_basic(k) = vid_noisy(k);
-				}
 				else
 					vid_basic(k) = num / den;
 			}
@@ -333,13 +328,13 @@ int run_vbm3d(
 
 		if(prms_2.k > 0)
 		{
-			VideoUtils::subDivideTight(vid_basic, sub_basic, imCrops, 2 * prms_2.n, nb_threads);
+			VideoUtils::subDivideTight(vid_basic, imCrops, 2 * prms_2.n, nb_threads);
 
 			//! Allocating Plan for FFTW process
 			if (prms_2.T_2D == DCT)
 				for (unsigned n = 0; n < nb_threads; n++)
 				{
-					const unsigned nb_cols = ind_size((imCrops[n].origin_x == 0) ? 0 : prms_2.n, (imCrops[n].ending_x == imCrops[n].source_sz.width) ? (sub_noisy[n].sz.width - prms_2.k) : (sub_noisy[n].sz.width - prms_2.k - prms_2.n), prms_2.p);
+					const unsigned nb_cols = ind_size((imCrops[n].origin_x == 0) ? 0 : prms_2.n, (imCrops[n].ending_x == imCrops[n].source_sz.width) ? ((imCrops[n].ending_x - imCrops[n].origin_x) - prms_2.k) : ((imCrops[n].ending_x - imCrops[n].origin_x) - prms_2.k - prms_2.n), prms_2.p);
 					allocate_plan_2d(&plan_2d[n], prms_2.k, FFTW_REDFT10,
 							prms_2.N * vid_noisy.sz.channels * prms_2.kt);
 					allocate_plan_2d(&plan_2d_inv[n], prms_2.k, FFTW_REDFT01,
@@ -348,37 +343,42 @@ int run_vbm3d(
 #ifdef SLOW3D
             for (unsigned n = 0; n < nb_threads; n++)
             {
-                const unsigned nb_cols = ind_size((imCrops[n].origin_x == 0) ? 0 : prms_2.n, (imCrops[n].ending_x == imCrops[n].source_sz.width) ? (sub_noisy[n].sz.width - prms_2.k) : (sub_noisy[n].sz.width - prms_2.k - prms_2.n), prms_2.p);
+                const unsigned nb_cols = ind_size((imCrops[n].origin_x == 0) ? 0 : prms_2.n, (imCrops[n].ending_x == imCrops[n].source_sz.width) ? ((imCrops[n].ending_x - imCrops[n].origin_x) - prms_2.k) : ((imCrops[n].ending_x - imCrops[n].origin_x) - prms_2.k - prms_2.n), prms_2.p);
                 allocate_plan_1d(&plan_1d[n], prms_2.kt, FFTW_REDFT10,
                         prms_2.N * vid_noisy.sz.channels * prms_2.k * prms_2.k);
                 allocate_plan_1d(&plan_1d_inv[n], prms_2.kt, FFTW_REDFT01,
-                        prms_2.N * nb_cols * vid_noisy.sz.channels * prms_2.k * prms_2.k);
+                        prms_2.N * vid_noisy.sz.channels * prms_2.k * prms_2.k);
             }
 #endif
 
 			//! Denoising: 2nd Step
 			cout << "step 2..." << endl;
-#pragma omp parallel shared(sub_noisy, sub_basic, sub_denoised, \
-		plan_2d, plan_2d_inv, numerator, denominator)
+#ifdef SLOW3D
+#pragma omp parallel shared(\
+		plan_2d, plan_2d_inv, plan_1d, plan_1d_inv, numerator, denominator, prms_2)
+#else
+#pragma omp parallel shared(\
+		plan_2d, plan_2d_inv, numerator, denominator, prms_2)
+#endif
 			{
 #pragma omp for schedule(dynamic)
 				for (unsigned n = 0; n < nb_threads; n++)
 				{
 #ifdef OPTICALFLOW
 #ifdef SLOW3D
-					vbm3d_2nd_step(sigma, sub_noisy[n], sub_basic[n], fflow, bflow, sub_denoised[n],
-							prms_2, &plan_2d[n], &plan_2d_inv[n], &plan_1d[n], &plan_1d_inv[n], &imCrops[n], color_space, vid_noisy, vid_basic, numerator[n], denominator[n]);
+					vbm3d_2nd_step(sigma, vid_noisy, vid_basic, fflow, bflow,
+							prms_2, &plan_2d[n], &plan_2d_inv[n], &plan_1d[n], &plan_1d_inv[n], &imCrops[n], color_space, numerator[n], denominator[n]);
 #else
-					vbm3d_2nd_step(sigma, sub_noisy[n], sub_basic[n], fflow, bflow, sub_denoised[n],
-							prms_2, &plan_2d[n], &plan_2d_inv[n], &imCrops[n], color_space, vid_noisy, vid_basic, numerator[n], denominator[n]);
+					vbm3d_2nd_step(sigma, vid_noisy, vid_basic, fflow, bflow,
+							prms_2, &plan_2d[n], &plan_2d_inv[n], &imCrops[n], color_space, numerator[n], denominator[n]);
 #endif
 #else
 #ifdef SLOW3D
-					vbm3d_2nd_step(sigma, sub_noisy[n], sub_basic[n], sub_denoised[n],
-							prms_2, &plan_2d[n], &plan_2d_inv[n], &plan_1d[n], &plan_1d_inv[n], &imCrops[n], color_space, vid_noisy, vid_basic, numerator[n], denominator[n]);
+					vbm3d_2nd_step(sigma, vid_noisy, vid_basic,
+							prms_2, &plan_2d[n], &plan_2d_inv[n], &plan_1d[n], &plan_1d_inv[n], &imCrops[n], color_space, numerator[n], denominator[n]);
 #else
-					vbm3d_2nd_step(sigma, sub_noisy[n], sub_basic[n], sub_denoised[n],
-							prms_2, &plan_2d[n], &plan_2d_inv[n], &imCrops[n], color_space, vid_noisy, vid_basic, numerator[n], denominator[n]);
+					vbm3d_2nd_step(sigma, vid_noisy, vid_basic,
+							prms_2, &plan_2d[n], &plan_2d_inv[n], &imCrops[n], color_space, numerator[n], denominator[n]);
 #endif
 #endif
 				}
@@ -394,10 +394,7 @@ int run_vbm3d(
 					den += denominator[n](k);
 				}
 				if(den == 0)
-				{
-					printf("Problem in the aggregation %f %f\n", num, den);
 					vid_denoised(k) = vid_noisy(k);
-				}
 				else
 					vid_denoised(k) = num / den;
 			}
@@ -461,7 +458,6 @@ void vbm3d_1st_step(
 ,   Video<float> &fflow
 ,   Video<float> &bflow
 #endif
-,   Video<float> &vid_basic
 ,   const Parameters& prms
 ,   fftwf_plan *  plan_2d
 ,   fftwf_plan *  plan_2d_inv
@@ -471,7 +467,6 @@ void vbm3d_1st_step(
 #endif
 ,   VideoUtils::CropPosition* crop
 ,   const unsigned color_space
-,   Video<float>& originalVideo
 ,   Video<float>& numerator
 ,   Video<float>& denominator
 ){
@@ -485,13 +480,13 @@ void vbm3d_1st_step(
 	if(crop == NULL)
 		ind_initialize(row_ind, 0, vid_noisy.sz.height - prms.k, prms.p);
 	else
-		ind_initialize(row_ind, (crop->origin_y == 0) ? 0 : prms.n, (crop->ending_y == crop->source_sz.height) ? (vid_noisy.sz.height - prms.k) : (vid_noisy.sz.height - prms.k - prms.n), prms.p);
+		ind_initialize(row_ind, (crop->origin_y == 0) ? 0 : prms.n, (crop->ending_y == crop->source_sz.height) ? ((crop->ending_y - crop->origin_y) - prms.k) : ((crop->ending_y - crop->origin_y) - prms.k - prms.n), prms.p);
 
 	vector<unsigned> column_ind(0);
 	if(crop == NULL)
 		ind_initialize(column_ind, 0, vid_noisy.sz.width - prms.k, prms.p);
 	else
-		ind_initialize(column_ind, (crop->origin_x == 0) ? 0 : prms.n, (crop->ending_x == crop->source_sz.width) ? (vid_noisy.sz.width - prms.k) : (vid_noisy.sz.width - prms.k - prms.n), prms.p);
+		ind_initialize(column_ind, (crop->origin_x == 0) ? 0 : prms.n, (crop->ending_x == crop->source_sz.width) ? ((crop->ending_x - crop->origin_x) - prms.k) : ((crop->ending_x - crop->origin_x) - prms.k - prms.n), prms.p);
 
 	const unsigned kHard_2 = prms.k * prms.k;
 	const unsigned kHard_2_t = prms.k * prms.k * prms.kt;
@@ -499,10 +494,6 @@ void vbm3d_1st_step(
 	vector<float> wx_r_table;
 	wx_r_table.reserve(vid_noisy.sz.channels * column_ind.size());
 	vector<float> hadamard_tmp(prms.N);
-
-	//! Check allocation memory
-	if (vid_basic.sz != vid_noisy.sz)
-		vid_basic.resize(vid_noisy.sz);
 
 	//! Preprocessing (KaiserWindow, Threshold, DCT normalization, ...)
 	vector<float> kaiser_window(kHard_2);
@@ -514,10 +505,10 @@ void vbm3d_1st_step(
 	vector<float> lpd, hpd, lpr, hpr;
 	bior15_coef(lpd, hpd, lpr, hpr);
 
-	//! For aggregation part
-	denominator.resize(originalVideo.sz);
-	numerator.resize(originalVideo.sz);
-	for (unsigned k = 0; k < originalVideo.sz.whcf; k++)
+	//! Initialize aggregators
+	denominator.resize(vid_noisy.sz);
+	numerator.resize(vid_noisy.sz);
+	for (unsigned k = 0; k < vid_noisy.sz.whcf; k++)
 	{
 		numerator(k) = 0.f;
 		denominator(k) = 0.f;
@@ -551,35 +542,35 @@ void vbm3d_1st_step(
 				unsigned pidx;
 				if(crop == NULL) // The video is not a cropped, nothing to change
 				{
-					pidx = originalVideo.sz.index(j_r, i_r, t_r, 0);
+					pidx = vid_noisy.sz.index(j_r, i_r, t_r, 0);
 				}
 				else // The video is a cropped, we need to find the original position of the patch
 				{
-					pidx = originalVideo.getIndexSymmetric(crop->origin_x + j_r, crop->origin_y + i_r, crop->origin_t + t_r, 0);
+					pidx = vid_noisy.getIndexSymmetric(crop->origin_x + j_r, crop->origin_y + i_r, crop->origin_t + t_r, 0);
 				}
 
 #ifdef OPTICALFLOW
-                unsigned nSx_r = computeSimilarPatches(distances, patch_table[ind_j], pidx, originalVideo, fflow, bflow, prms);
+                unsigned nSx_r = computeSimilarPatches(distances, patch_table[ind_j], pidx, vid_noisy, fflow, bflow, prms);
 #else
-                unsigned nSx_r = computeSimilarPatches(distances, patch_table[ind_j], pidx, originalVideo, prms);
+                unsigned nSx_r = computeSimilarPatches(distances, patch_table[ind_j], pidx, vid_noisy, prms);
 #endif
 				size_patch_table[ind_j] = nSx_r;
 
 				//! Update of table_2D
 				if (prms.T_2D == DCT)
 #ifdef MOTIONCOMP
-					dct_2d_process(table_2D, originalVideo, patch_table[ind_j], plan_2d,
+					dct_2d_process(table_2D, vid_noisy, patch_table[ind_j], plan_2d,
 							prms.k, prms.kt, coef_norm, fflow);
 #else
-					dct_2d_process(table_2D, originalVideo, patch_table[ind_j], plan_2d,
+					dct_2d_process(table_2D, vid_noisy, patch_table[ind_j], plan_2d,
 							prms.k, prms.kt, coef_norm);
 #endif
 				else if (prms.T_2D == BIOR)
 #ifdef MOTIONCOMP
-					bior_2d_process(table_2D, originalVideo, patch_table[ind_j], prms.n, 
+					bior_2d_process(table_2D, vid_noisy, patch_table[ind_j], 
 							prms.k, prms.kt, lpd, hpd, fflow);
 #else
-					bior_2d_process(table_2D, originalVideo, patch_table[ind_j], prms.n, 
+					bior_2d_process(table_2D, vid_noisy, patch_table[ind_j], 
 							prms.k, prms.kt, lpd, hpd);
 #endif
 
@@ -646,7 +637,7 @@ void vbm3d_1st_step(
 					unsigned patch_j_r, patch_i_r, patch_t_r, patch_c_r;
 					for (unsigned n = 0; n < nSx_r; n++)
 					{
-						originalVideo.sz.coords(patch_table[ind_j][n], patch_j_r, patch_i_r, patch_t_r, patch_c_r);
+						vid_noisy.sz.coords(patch_table[ind_j][n], patch_j_r, patch_i_r, patch_t_r, patch_c_r);
                         for (unsigned t = 0; t < prms.kt; t++)
                         {
                             for (unsigned p = 0; p < prms.k; p++)
@@ -662,8 +653,8 @@ void vbm3d_1st_step(
                             if(t < prms.kt - 1)
                             {
                                 unsigned old = patch_j_r;
-                                patch_j_r = (unsigned) std::min(std::max((int)(patch_j_r + std::round(fflow(patch_j_r + prms.k/2,patch_i_r + prms.k/2,patch_t_r+t,0))), 0), (int)(vid_noisy.sz.width - prms.k/2 - 1)) - prms.k/2;
-                                patch_i_r = (unsigned) std::min(std::max((int)(patch_i_r + std::round(fflow(old + prms.k/2,patch_i_r + prms.k/2,patch_t_r+t,1))), 0), (int)(vid_noisy.sz.height - prms.k/2 - 1)) - prms.k/2;
+                                patch_j_r = (unsigned) std::min(std::max((int)(patch_j_r + std::round(fflow(patch_j_r + prms.k/2,patch_i_r + prms.k/2,patch_t_r+t,0))), 0), (int)(vid_noisy.sz.width - prms.k));
+                                patch_i_r = (unsigned) std::min(std::max((int)(patch_i_r + std::round(fflow(old + prms.k/2,patch_i_r + prms.k/2,patch_t_r+t,1))), 0), (int)(vid_noisy.sz.height - prms.k));
                             }
 #endif
                         }
@@ -705,7 +696,6 @@ void vbm3d_2nd_step(
 ,   Video<float> &fflow
 ,   Video<float> &bflow
 #endif
-,   Video<float> &vid_denoised
 ,   const Parameters& prms
 ,   fftwf_plan *  plan_2d
 ,   fftwf_plan *  plan_2d_inv
@@ -715,8 +705,6 @@ void vbm3d_2nd_step(
 #endif
 ,   VideoUtils::CropPosition* crop
 ,   const unsigned color_space
-,   Video<float>& originalVideo_noisy
-,   Video<float>& originalVideo_basic
 ,   Video<float>& numerator
 ,   Video<float>& denominator
 ){
@@ -730,13 +718,13 @@ void vbm3d_2nd_step(
 	if(crop == NULL)
 		ind_initialize(row_ind, 0, (vid_basic.sz.height - prms.k), prms.p);
 	else
-		ind_initialize(row_ind, (crop->origin_y == 0) ? 0 : prms.n, (crop->ending_y == crop->source_sz.height) ? (vid_noisy.sz.height - prms.k) : (vid_noisy.sz.height - prms.k - prms.n), prms.p);
+		ind_initialize(row_ind, (crop->origin_y == 0) ? 0 : prms.n, (crop->ending_y == crop->source_sz.height) ? ((crop->ending_y - crop->origin_y) - prms.k) : ((crop->ending_y - crop->origin_y) - prms.k - prms.n), prms.p);
 
 	vector<unsigned> column_ind(0);
 	if(crop == NULL)
 		ind_initialize(column_ind, 0, (vid_basic.sz.width - prms.k), prms.p);
 	else
-		ind_initialize(column_ind, (crop->origin_x == 0) ? 0 : prms.n, (crop->ending_x == crop->source_sz.width) ? (vid_noisy.sz.width - prms.k) : (vid_noisy.sz.width - prms.k - prms.n), prms.p);
+		ind_initialize(column_ind, (crop->origin_x == 0) ? 0 : prms.n, (crop->ending_x == crop->source_sz.width) ? ((crop->ending_x - crop->origin_x) - prms.k) : ((crop->ending_x - crop->origin_x) - prms.k - prms.n), prms.p);
 
 	const unsigned kWien_2 = prms.k * prms.k;
 	const unsigned kWien_2_t = kWien_2 * prms.kt;
@@ -744,10 +732,6 @@ void vbm3d_2nd_step(
 	vector<float> wx_r_table;
 	wx_r_table.reserve(vid_noisy.sz.channels * column_ind.size());
 	vector<float> tmp(prms.N);
-
-	//! Check allocation memory
-	if (vid_denoised.sz != vid_basic.sz)
-		vid_denoised.resize(vid_basic.sz);
 
 	//! Preprocessing (KaiserWindow, Threshold, DCT normalization, ...)
 	vector<float> kaiser_window(kWien_2);
@@ -760,9 +744,9 @@ void vbm3d_2nd_step(
 	bior15_coef(lpd, hpd, lpr, hpr);
 
 	//! For aggregation part
-	denominator.resize(originalVideo_noisy.sz);
-	numerator.resize(originalVideo_noisy.sz);
-	for (unsigned k = 0; k < originalVideo_noisy.sz.whcf; k++)
+	denominator.resize(vid_noisy.sz);
+	numerator.resize(vid_noisy.sz);
+	for (unsigned k = 0; k < vid_noisy.sz.whcf; k++)
 	{
 		numerator(k) = 0.f;
 		denominator(k) = 0.f;
@@ -797,16 +781,16 @@ void vbm3d_2nd_step(
 				unsigned pidx;
 				if(crop == NULL) // The video is not a cropped, nothing to change
 				{
-					pidx = originalVideo_basic.sz.index(j_r, i_r, t_r, 0);
+					pidx = vid_basic.sz.index(j_r, i_r, t_r, 0);
 				}
 				else // The video is a cropped, we need to find the original position of the patch
 				{
-					pidx = originalVideo_basic.getIndexSymmetric(crop->origin_x + j_r, crop->origin_y + i_r, crop->origin_t + t_r, 0);
+					pidx = vid_basic.getIndexSymmetric(crop->origin_x + j_r, crop->origin_y + i_r, crop->origin_t + t_r, 0);
 				}
 #ifdef OPTICALFLOW
-				unsigned nSx_r = computeSimilarPatches(distances, patch_table[ind_j], pidx, originalVideo_basic, fflow, bflow, prms);
+				unsigned nSx_r = computeSimilarPatches(distances, patch_table[ind_j], pidx, vid_basic, fflow, bflow, prms);
 #else
-				unsigned nSx_r = computeSimilarPatches(distances, patch_table[ind_j], pidx, originalVideo_basic, prms);
+				unsigned nSx_r = computeSimilarPatches(distances, patch_table[ind_j], pidx, vid_basic, prms);
 #endif
 				size_patch_table[ind_j] = nSx_r;
 
@@ -814,28 +798,28 @@ void vbm3d_2nd_step(
 				if (prms.T_2D == DCT)
 				{
 #ifdef MOTIONCOMP
-					dct_2d_process(table_2D_vid, originalVideo_noisy, patch_table[ind_j], plan_2d,
+					dct_2d_process(table_2D_vid, vid_noisy, patch_table[ind_j], plan_2d,
 							prms.k, prms.kt, coef_norm, fflow);
-					dct_2d_process(table_2D_est, originalVideo_basic, patch_table[ind_j], plan_2d,
+					dct_2d_process(table_2D_est, vid_basic, patch_table[ind_j], plan_2d,
 							prms.k, prms.kt, coef_norm, fflow);
 #else
-					dct_2d_process(table_2D_vid, originalVideo_noisy, patch_table[ind_j], plan_2d,
+					dct_2d_process(table_2D_vid, vid_noisy, patch_table[ind_j], plan_2d,
 							prms.k, prms.kt, coef_norm);
-					dct_2d_process(table_2D_est, originalVideo_basic, patch_table[ind_j], plan_2d,
+					dct_2d_process(table_2D_est, vid_basic, patch_table[ind_j], plan_2d,
 							prms.k, prms.kt, coef_norm);
 #endif
 				}
 				else if (prms.T_2D == BIOR)
 				{
 #ifdef MOTIONCOMP
-					bior_2d_process(table_2D_vid, originalVideo_noisy, patch_table[ind_j], prms.n,
+					bior_2d_process(table_2D_vid, vid_noisy, patch_table[ind_j],
 							prms.k, prms.kt, lpd, hpd, fflow);
-					bior_2d_process(table_2D_est, originalVideo_basic, patch_table[ind_j], prms.n,
+					bior_2d_process(table_2D_est, vid_basic, patch_table[ind_j],
 							prms.k, prms.kt, lpd, hpd, fflow);
 #else
-					bior_2d_process(table_2D_vid, originalVideo_noisy, patch_table[ind_j], prms.n,
+					bior_2d_process(table_2D_vid, vid_noisy, patch_table[ind_j],
 							prms.k, prms.kt, lpd, hpd);
-					bior_2d_process(table_2D_est, originalVideo_basic, patch_table[ind_j], prms.n,
+					bior_2d_process(table_2D_est, vid_basic, patch_table[ind_j],
 							prms.k, prms.kt, lpd, hpd);
 #endif
 				}
@@ -917,7 +901,7 @@ void vbm3d_2nd_step(
 					unsigned patch_j_r, patch_i_r, patch_t_r, patch_c_r;
 					for (unsigned n = 0; n < nSx_r; n++)
 					{
-						originalVideo_noisy.sz.coords(patch_table[ind_j][n], patch_j_r, patch_i_r, patch_t_r, patch_c_r);
+						vid_noisy.sz.coords(patch_table[ind_j][n], patch_j_r, patch_i_r, patch_t_r, patch_c_r);
 						for (unsigned t = 0; t < prms.kt; t++)
                         {
                             for (unsigned p = 0; p < prms.k; p++)
@@ -933,8 +917,8 @@ void vbm3d_2nd_step(
                             if(t < prms.kt - 1)
                             {
                                 unsigned old = patch_j_r;
-                                patch_j_r = (unsigned) std::min(std::max((int)(patch_j_r + std::round(fflow(patch_j_r + prms.k/2,patch_i_r + prms.k/2,patch_t_r+t,0))), 0), (int)(vid_noisy.sz.width - prms.k/2 - 1)) - prms.k/2;
-                                patch_i_r = (unsigned) std::min(std::max((int)(patch_i_r + std::round(fflow(old + prms.k/2,patch_i_r + prms.k/2,patch_t_r+t,1))), 0), (int)(vid_noisy.sz.height - prms.k/2 - 1)) - prms.k/2;
+                                patch_j_r = (unsigned) std::min(std::max((int)(patch_j_r + std::round(fflow(patch_j_r + prms.k/2,patch_i_r + prms.k/2,patch_t_r+t,0))), 0), (int)(vid_noisy.sz.width - prms.k));
+                                patch_i_r = (unsigned) std::min(std::max((int)(patch_i_r + std::round(fflow(old + prms.k/2,patch_i_r + prms.k/2,patch_t_r+t,1))), 0), (int)(vid_noisy.sz.height - prms.k));
                             }
 #endif
                         }
@@ -978,11 +962,11 @@ inline float patchDistance(
         if(ht < sPt - 1)
         {
             unsigned old = px;
-            px = (unsigned) std::min(std::max((int)(px + std::round(fflow(px + sizePatch/2,py + sizePatch/2,pt+ht,0))), 0), (int)(vid.sz.width - sizePatch/2 - 1)) - sizePatch/2;
-            py = (unsigned) std::min(std::max((int)(py + std::round(fflow(old + sizePatch/2,py + sizePatch/2,pt+ht,1))), 0), (int)(vid.sz.height - sizePatch/2 - 1)) - sizePatch/2;
+            px = (unsigned) std::min(std::max((int)(px + std::round(fflow(px + sizePatch/2,py + sizePatch/2,pt+ht,0))), 0), (int)(vid.sz.width - sizePatch));
+            py = (unsigned) std::min(std::max((int)(py + std::round(fflow(old + sizePatch/2,py + sizePatch/2,pt+ht,1))), 0), (int)(vid.sz.height - sizePatch));
             old = qx;
-            qx = (unsigned) std::min(std::max((int)(qx + std::round(fflow(qx + sizePatch/2,qy + sizePatch/2,qt+ht,0))), 0), (int)(vid.sz.width - sizePatch/2 - 1)) - sizePatch/2;
-            qy = (unsigned) std::min(std::max((int)(qy + std::round(fflow(old + sizePatch/2,qy + sizePatch/2,qt+ht,1))), 0), (int)(vid.sz.height - sizePatch/2 - 1)) - sizePatch/2;
+            qx = (unsigned) std::min(std::max((int)(qx + std::round(fflow(qx + sizePatch/2,qy + sizePatch/2,qt+ht,0))), 0), (int)(vid.sz.width - sizePatch));
+            qy = (unsigned) std::min(std::max((int)(qy + std::round(fflow(old + sizePatch/2,qy + sizePatch/2,qt+ht,1))), 0), (int)(vid.sz.height - sizePatch));
         }
 #endif
     }
@@ -1310,8 +1294,8 @@ void dct_2d_process(
                 if(ht < ktHW - 1)
                 {
                     unsigned oldi = i;
-                    i = (unsigned) std::min(std::max((int)(i + std::round(fflow(i + kHW/2,j + kHW/2,t+ht,0))), 0), (int)(vid.sz.width - kHW/2 - 1)) - kHW/2;
-                    j = (unsigned) std::min(std::max((int)(j + std::round(fflow(oldi + kHW/2,j + kHW/2,t+ht,1))), 0), (int)(vid.sz.height - kHW/2 - 1)) - kHW/2;
+                    i = (unsigned) std::min(std::max((int)(i + std::round(fflow(i + kHW/2,j + kHW/2,t+ht,0))), 0), (int)(vid.sz.width - kHW));
+                    j = (unsigned) std::min(std::max((int)(j + std::round(fflow(oldi + kHW/2,j + kHW/2,t+ht,1))), 0), (int)(vid.sz.height - kHW));
                 }
 #endif
             }
@@ -1358,7 +1342,6 @@ void bior_2d_process(
     vector<float> &bior_table_2D
 ,   Video<float> const& vid
 ,   vector<unsigned> const& patch_table
-,   const unsigned nHW
 ,   const unsigned kHW
 ,   const unsigned ktHW
 ,   vector<float> &lpd
@@ -1387,8 +1370,8 @@ void bior_2d_process(
                 if(ht < ktHW - 1)
                 {
                     unsigned oldi = i;
-                    i = (unsigned) std::min(std::max((int)(i + std::round(fflow(j + kHW/2,i + kHW/2,t+ht,0))), 0), (int)(vid.sz.width - kHW/2 - 1)) - kHW/2;
-                    j = (unsigned) std::min(std::max((int)(j + std::round(fflow(j + kHW/2,oldi + kHW/2,t+ht,1))), 0), (int)(vid.sz.height - kHW/2 - 1)) - kHW/2;
+                    i = (unsigned) std::min(std::max((int)(i + std::round(fflow(j + kHW/2,i + kHW/2,t+ht,0))), 0), (int)(vid.sz.width - kHW));
+                    j = (unsigned) std::min(std::max((int)(j + std::round(fflow(j + kHW/2,oldi + kHW/2,t+ht,1))), 0), (int)(vid.sz.height - kHW));
                 }
 #endif
             }
@@ -1580,7 +1563,7 @@ void wiener_filtering_hadamard(
 #ifdef DCWIENER
 		for (unsigned k = 0; k < kWien_2_t * nSx_r; k++)
 #else
-        for (unsigned k = nSx_r; k < kWien_2_t * nSx_r; k++)
+        for (unsigned k = 1; k < kWien_2_t * nSx_r; k++)
 #endif
 		{
 			float value = group_3D_est[dc + k] * group_3D_est[dc + k] * coef;
@@ -1653,7 +1636,7 @@ void wiener_filtering_haar(
 #ifdef DCWIENER
 		for (unsigned k = 0; k < kWien_2_t * nSx_r; k++)
 #else
-        for (unsigned k = nSx_r; k < kWien_2_t * nSx_r; k++)
+        for (unsigned k = 1; k < kWien_2_t * nSx_r; k++)
 #endif
 		{
 			float value = group_3D_est[dc + k] * group_3D_est[dc + k];
@@ -1939,7 +1922,6 @@ void temporal_transform(
 	//! Declarations
 	const unsigned kHW_2 = kHW * kHW;
 	const unsigned kHW_2_t = kHW_2 * ktHW;
-    //const float norm = 1./sqrt(2*(ktHW-1));
     const float norm = 1./sqrt(2*ktHW);
     const unsigned size = chnls * kHW_2_t * N;
 
@@ -1986,7 +1968,6 @@ void temporal_inv_transform(
 	//! Declarations
 	const unsigned kHW_2 = kHW * kHW;
 	const unsigned kHW_2_t = kHW_2 * ktHW;
-    //const float norm = 1./sqrt(2*(ktHW-1));
     const float norm = 1./sqrt(2*ktHW);
     const unsigned size = chnls * kHW_2_t * N;
 
@@ -2001,12 +1982,12 @@ void temporal_inv_transform(
         for(unsigned n = 0; n < nSx_r; ++n)
 		for(unsigned k = 0; k < kHW_2; ++k)
         for (unsigned kt = 0; kt < ktHW; kt++)
-            vec[k*ktHW + kt + dc_p + n * kHW_2_t] = group_3D[n + (k+kt*kHW_2)*nSx_r + c*kHW_2_t*nSx_r];
+            dct[k*ktHW + kt + dc_p + n * kHW_2_t] = group_3D[n + (k+kt*kHW_2)*nSx_r + c*kHW_2_t*nSx_r];
 	}
 
-	////! Process of all DCTs
-	fftwf_execute_r2r(*plan, vec, dct);
-	fftwf_free(vec);
+	//! Process of all DCTs
+	fftwf_execute_r2r(*plan, dct, vec);
+	fftwf_free(dct);
 
 	//! Getting the result
 	for (unsigned c = 0; c < chnls; c++)
@@ -2016,8 +1997,8 @@ void temporal_inv_transform(
         for (unsigned kt = 0; kt < ktHW; kt++)
         for (unsigned k = 0; k < kHW_2; k++)
             group_3D[n + (k+kt*kHW_2)*nSx_r + c*kHW_2_t*nSx_r] =
-                        dct[k*ktHW + kt + dc_p + n * kHW_2_t] * norm;
+                        vec[k*ktHW + kt + dc_p + n * kHW_2_t] * norm;
 	}
-	fftwf_free(dct);
+	fftwf_free(vec);
 }
 #endif
