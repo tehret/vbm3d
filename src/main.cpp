@@ -99,7 +99,8 @@ void initializeParameters_1(
 		prms.d = (d*d)/(255.*prms.k*prms.k);
 
 	if(p < 0)
-		prms.p = 6;
+//		prms.p = 6;
+		prms.p = prms.k/4*3;
 	else
 		prms.p = p;
 
@@ -193,7 +194,8 @@ void initializeParameters_2(
 		prms.d = (d*d)/(255.*prms.k*prms.k);
 
 	if(p < 0)
-		prms.p = 4;
+//		prms.p = 4;
+		prms.p = prms.k/2;
 	else
 		prms.p = p;
 
