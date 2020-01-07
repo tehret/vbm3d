@@ -120,19 +120,19 @@ void initializeParameters_1(
 		prms.lambda3D = lambda3D;
 
 	if(T_2D == NONE)
-    {
-        if(prms.k == 8)
-            prms.T_2D = BIOR;
-        else
-            prms.T_2D = DCT;
-    }
+	{
+		if(prms.k == 8)
+			prms.T_2D = BIOR;
+		else
+			prms.T_2D = DCT;
+	}
 	else
-    {
-        if(prms.k == 8)
-            prms.T_2D = T_2D;
-        else
-            prms.T_2D = DCT;
-    }
+	{
+		if(prms.k == 8)
+			prms.T_2D = T_2D;
+		else
+			prms.T_2D = DCT;
+	}
 
 	if(T_3D == NONE)
 		prms.T_3D = HAAR;
@@ -212,12 +212,12 @@ void initializeParameters_2(
 	if(T_2D == NONE)
 		prms.T_2D = DCT;
 	else
-    {
-        if(prms.k == 8)
-            prms.T_2D = T_2D;
-        else
-            prms.T_2D = DCT;
-    }
+	{
+		if(prms.k == 8)
+			prms.T_2D = T_2D;
+		else
+			prms.T_2D = DCT;
+	}
 
 	if(T_3D == NONE)
 		prms.T_3D = HAAR;
@@ -262,12 +262,12 @@ int main(int argc, char **argv)
     //! Check if there is the right call for the algorithm
 	using std::string;
 	const string  input_path = clo_option("-i"    , ""               , "< Input sequence");
-	const string  inbsc_path = clo_option("-b"    , ""               , "< Input basic sequence (it will replace the basic estimation step)");
-	const string  noisy_path = clo_option("-nisy" , ""               , "> Noisy sequence");
+	const string  inbsc_path = clo_option("-b"    , ""               , "< Input basic sequence (replacing first pass)");
+	const string  noisy_path = clo_option("-nisy" , ""               , "> Noisy sequence (only when -add is true)");
 	const string  final_path = clo_option("-deno" , "deno_%03d.tiff" , "> Denoised sequence");
-	const string  basic_path = clo_option("-bsic" , ""               , "> Basic denoised sequence");
-	const string   diff_path = clo_option("-diff" , ""               , "> Difference sequence");
-	const string   meas_path = clo_option("-meas" , "measure.txt"    , "> Text file containing the measures (only reliable when -add is set to true)");
+	const string  basic_path = clo_option("-bsic" , "bsic_%03d.tiff" , "> Basic denoised sequence");
+	const string   diff_path = clo_option("-diff" , ""               , "> Difference sequence (only when -add is true)");
+	const string   meas_path = clo_option("-meas" , "measure.txt"    , "> Text file with PSNR/RMSE (only when -add is true)");
 #ifdef OPTICALFLOW
 	const string  fflow_path = clo_option("-fflow", ""  , "< Forward optical flow ");
 	const string  bflow_path = clo_option("-bflow", ""  , "< Backward optical flow ");
@@ -294,6 +294,8 @@ int main(int argc, char **argv)
 	const int dHard = clo_option("-dHard", -1,          "< Bias toward center patches (first pass)");
 	const float tauHard = clo_option("-tauHard", -1.,   "< Distance threshold on neighbors (first pass)");
 	const float lambda3D = clo_option("-lambda3d", -1., "< Coefficient threhsold (first pass)");
+	const unsigned T_2D_hard  = (unsigned) clo_option("-T2dh", NONE , "< 2D transform (first pass), choice is 4 (dct) or 5 (bior)");
+	const unsigned T_3D_hard  = (unsigned) clo_option("-T3dh", NONE , "< 1D transform (first pass), choice is 6 (hadamard) or 7 (haar)");
 
 	const int kWien = clo_option("-kWien", -1,          "< Spatial size of the patch (second pass)");
 	const int ktWien = clo_option("-ktWien", -1,        "< Temporal size of the patch (second pass)");
@@ -305,67 +307,53 @@ int main(int argc, char **argv)
 	const int NWien = clo_option("-NWien", -1,          "< Maximum number of neighbors (second pass)");
 	const int dWien = clo_option("-dWien", -1,          "< Bias toward center patches (second pass)");
 	const float tauWien = clo_option("-tauWien", -1.,   "< Distance threshold on neighbors (second pass)");
+	const unsigned T_2D_wien  = (unsigned) clo_option("-T2dw", NONE , "< 2D transform (second pass), choice is 4 (dct) or 5 (bior)");
+	const unsigned T_3D_wien  = (unsigned) clo_option("-T3dw", NONE , "< 1D transform (first pass), choice is 6 (hadamard) or 7 (haar)");
 
 	const unsigned color_space  =  (unsigned) clo_option("-color", 0 , "< Set the color space (0 correspond to RGB->OPP, any other value keeps RGB for now)");
 
 	//! Check inputs
 	if (input_path == "")
-	{
-		fprintf(stderr, "%s: no input images.\nTry `%s --help' for more information.\n",
-				argv[0], argv[0]);
-		return EXIT_FAILURE;
-	}
+		return fprintf(stderr, "%s: no input images.\n"
+			"Try `%s --help' for more information.\n", argv[0], argv[0]),
+			EXIT_FAILURE;
 #ifdef OPTICALFLOW
-    if (fflow_path == "" || bflow_path == "")
-	{
-		fprintf(stderr, "%s: no forward and backward flows.\nTry `%s --help' for more information.\n",
-				argv[0], argv[0]);
-		return EXIT_FAILURE;
-	}
+	if (fflow_path == "" || bflow_path == "")
+		return fprintf(stderr, "%s: no forward and backward flows.\n"
+			"Try `%s --help' for more information.\n", argv[0], argv[0]),
+			EXIT_FAILURE;
 #endif
 
-	//! Variables initialization
-	const unsigned T_2D_hard  = (unsigned) clo_option("-T2dh", NONE , "< 2D transform (first pass), choice is 4 (dct) or 5 (bior)");
+	//! Check for invalid inputs
 	if (T_2D_hard != NONE && T_2D_hard != DCT && T_2D_hard != BIOR)
-	{
-		cout << "T_2d_hard is not known. Choice is :" << endl;
-		cout << " dct (" << DCT << ")" << endl;
-		cout << " bior (" << BIOR << ")" << endl;
-		return EXIT_FAILURE;
-	}
+		return fprintf(stderr, "%s: unknown T_2d_hard."
+			"Try `%s --help' for the available choices.\n", argv[0], argv[0]),
+			EXIT_FAILURE;
 
-	const unsigned T_2D_wien  = (unsigned) clo_option("-T2dw", NONE , "< 2D transform (second pass), choice is 4 (dct) or 5 (bior)");
 	if (T_2D_wien != NONE && T_2D_wien != DCT && T_2D_wien != BIOR)
-	{
-		cout << "T_2d_wien is not known. Choice is :" << endl;
-		cout << " dct (" << DCT << ")" << endl;
-		cout << " bior (" << BIOR << ")" << endl;
-		return EXIT_FAILURE;
-	};
+		return fprintf(stderr, "%s: unknown T_2d_wien."
+			"Try `%s --help' for the available choices.\n", argv[0], argv[0]),
+			EXIT_FAILURE;
 
-	const unsigned T_3D_hard  = (unsigned) clo_option("-T3dh", NONE , "< 1D transform (first pass), choice is 6 (hadamard) or 7 (haar)");
 	if (T_3D_hard != NONE && T_3D_hard != HAAR && T_3D_hard != HADAMARD)
-	{
-		cout << "T_3d_hard is not known. Choice is :" << endl;
-		cout << " haar (" << HAAR << ")" << endl;
-		cout << " hadamard (" << HADAMARD << ")" << endl;
-		return EXIT_FAILURE;
-	}
+		return fprintf(stderr, "%s: unknown T_3d_hard."
+			"Try `%s --help' for the available choices.\n", argv[0], argv[0]),
+			EXIT_FAILURE;
 
-	const unsigned T_3D_wien  = (unsigned) clo_option("-T3dw", NONE , "< 1D transform (first pass), choice is 6 (hadamard) or 7 (haar)");
 	if (T_3D_wien != NONE && T_3D_wien != HAAR && T_3D_wien != HADAMARD)
-	{
-		cout << "T_3d_wien is not known. Choice is :" << endl;
-		cout << " haar (" << HAAR << ")" << endl;
-		cout << " hadamard (" << HADAMARD << ")" << endl;
-		return EXIT_FAILURE;
-	};
+		return fprintf(stderr, "%s: unknown T_3d_wien."
+			"Try `%s --help' for the available choices.\n", argv[0], argv[0]),
+			EXIT_FAILURE;
 
+	//! Init parameters
 	Parameters prms_1;
 	Parameters prms_2;
 
-	initializeParameters_1(prms_1, kHard, ktHard, NfHard, NsHard, NprHard, NbHard, pHard, NHard, dHard, tauHard, lambda3D, T_2D_hard, T_3D_hard, fSigma);
-	initializeParameters_2(prms_2, kWien, ktWien, NfWien, NsWien, NprWien, NbWien, pWien, NWien, dWien, tauWien, T_2D_wien, T_3D_wien, fSigma);
+	initializeParameters_1(prms_1, kHard, ktHard, NfHard, NsHard, NprHard,
+			NbHard, pHard, NHard, dHard, tauHard, lambda3D, T_2D_hard, T_3D_hard,
+			fSigma);
+	initializeParameters_2(prms_2, kWien, ktWien, NfWien, NsWien, NprWien,
+			NbWien, pWien, NWien, dWien, tauWien, T_2D_wien, T_3D_wien, fSigma);
 
 	//! Print parameters
 	if (verbose)
@@ -376,6 +364,7 @@ int main(int argc, char **argv)
 
 	//! Declarations
 	Video<float> vid, vid_noisy, vid_basic, vid_denoised, vid_diff;
+
 #ifdef OPTICALFLOW
 	Video<float> fflow;
 	Video<float> bflow;
@@ -390,14 +379,12 @@ int main(int argc, char **argv)
 	fflow.loadFullFlow(fflow_path, firstFrame, lastFrame-1, frameStep);
 	bflow.loadFullFlow(bflow_path, firstFrame+1, lastFrame, frameStep);
 
-    // Check that all sizes are consistent
-    if(fflow.sz.width != bflow.sz.width || fflow.sz.width != vid.sz.width
-            || fflow.sz.height != bflow.sz.height || fflow.sz.height != vid.sz.height)
-    {
-		fprintf(stderr, "%s: Sizes (flows and video) are inconsistent.\nTry `%s --help' for more information.\n",
-				argv[0], argv[0]);
-		return EXIT_FAILURE;
-    }
+	// Check that all sizes are consistent
+	if(fflow.sz.width  != bflow.sz.width  || fflow.sz.width  != vid.sz.width ||
+	   fflow.sz.height != bflow.sz.height || fflow.sz.height != vid.sz.height)
+		return fprintf(stderr, "%s: incompatible flows and/or frame sizes.\n"
+			"Try `%s --help' for more information.\n", argv[0], argv[0]),
+			EXIT_FAILURE;
 #endif
 
 	vid_noisy.resize(vid.sz);
@@ -406,71 +393,62 @@ int main(int argc, char **argv)
 	//! Add noise
 	if(addnoise)
 	{
-		cout << endl << "Add noise [sigma = " << fSigma << "] ...";
+		printf("Add noise with sigma = %f to input video\n");
 		VideoUtils::addNoise(vid, vid_noisy, fSigma, verbose);
-		cout << "done." << endl;
 	}
 	else
+	{
+		printf("Noisy input video with sigma = %f\n", fSigma);
 		vid_noisy = vid;
+	}
 
 	//! Denoising
 #ifdef OPTICALFLOW
-	if (run_vbm3d(fSigma, vid_noisy, fflow, bflow, vid_basic, vid_denoised, prms_1, prms_2, color_space)
-			!= EXIT_SUCCESS)
+	if (run_vbm3d(fSigma, vid_noisy, fflow, bflow, vid_basic, vid_denoised,
+		           prms_1, prms_2, color_space) != EXIT_SUCCESS)
 		return EXIT_FAILURE;
 #else
-	if (run_vbm3d(fSigma, vid_noisy, vid_basic, vid_denoised, prms_1, prms_2, color_space)
-			!= EXIT_SUCCESS)
+	if (run_vbm3d(fSigma, vid_noisy, vid_basic, vid_denoised, prms_1, prms_2,
+		           color_space) != EXIT_SUCCESS)
 		return EXIT_FAILURE;
 #endif
 
 	//! Compute PSNR and RMSE
-	double psnr, rmse;
-	double psnr_basic, rmse_basic;
-	VideoUtils::computePSNR(vid, vid_basic, psnr_basic, rmse_basic);
-	VideoUtils::computePSNR(vid, vid_denoised, psnr, rmse);
-
-	cout << endl << "For noisy video :" << endl;
-	cout << "PSNR: " << psnr << endl;
-	cout << "RMSE: " << rmse << endl << endl;
-	cout << "(basic video) :" << endl;
-	cout << "PSNR: " << psnr_basic << endl;
-	cout << "RMSE: " << rmse_basic << endl << endl;
-
-	ofstream file(meas_path, ios::out | ios::trunc);
-	if(file)
+	if (addnoise)
 	{
-		file << endl << "************" << endl;
-		file << "-sigma           = " << fSigma << endl;
-		file << "-PSNR_basic      = " << psnr_basic << endl;
-		file << "-RMSE_basic      = " << rmse_basic << endl;
-		file << "-PSNR            = " << psnr << endl;
-		file << "-RMSE            = " << rmse << endl << endl;
-		cout << endl;
-		file.close();
-	}
-	else
-	{
-		cout << "Can't open measures.txt !" << endl;
-		return EXIT_FAILURE;
-	}
+		double psnr, rmse;
+		double psnr_basic, rmse_basic;
+		VideoUtils::computePSNR(vid, vid_basic, psnr_basic, rmse_basic);
+		VideoUtils::computePSNR(vid, vid_denoised, psnr, rmse);
 
-	//! Compute Difference
-    if (diff_path != "")
-    {
-        cout << endl << "Compute difference...";
-        VideoUtils::computeDiff(vid, vid_denoised, vid_diff, fSigma);
-        cout << "done." << endl;
-    }
+		if (verbose)
+		{
+			printf("Basic estimate: PSNR= %5.2f RMSE= %6.3f\n", psnr_basic, rmse_basic);
+			printf("Final estimate: PSNR= %5.2f RMSE= %6.3f\n", psnr, rmse);
+		}
+
+		FILE *file = fopen(meas_path.c_str(), "w");
+		if(file)
+		{
+			fprintf(file, "-sigma = %f\n-PSNR_basic = %f\n-RSME_basic = %f\n"
+			              "-PSNR = %f\n-RMSE = %f\n",
+			        fSigma, psnr_basic, rmse_basic, psnr, rmse);
+			fclose(file);
+		}
+		else fprintf(stderr, "Can't open %s\n", meas_path);
+
+		//! Compute Difference
+		if (diff_path != "")
+			VideoUtils::computeDiff(vid, vid_denoised, vid_diff, fSigma);
+
+		if (noisy_path != "") vid_noisy.saveVideo(noisy_path, firstFrame, frameStep);
+		if ( diff_path != "") vid_diff .saveVideo( diff_path, firstFrame, frameStep);
+	}
 
 	//! save noisy, denoised and differences videos
-	cout << endl << "Save videos...";
-	if (noisy_path != "") vid_noisy.saveVideo(noisy_path, firstFrame, frameStep);
+	if (verbose) printf("Save output videos...\n");
 	if (basic_path != "") vid_basic.saveVideo(basic_path, firstFrame, frameStep);
-	if ( diff_path != "") vid_diff .saveVideo( diff_path, firstFrame, frameStep);
-	vid_denoised.saveVideo(final_path, firstFrame, frameStep);
-
-	cout << "done." << endl;
+	if (prms_2.k)      vid_denoised.saveVideo(final_path, firstFrame, frameStep);
 
 	return EXIT_SUCCESS;
 }
