@@ -225,6 +225,30 @@ void initializeParameters_2(
 		prms.T_3D = T_3D;
 }
 
+void printParameters(const Parameters& prms, const string suffix)
+{
+	const char *s = suffix.c_str();
+	if (!prms.k)
+	{
+		printf("%s step skipped\n", s);
+		return;
+	}
+
+	printf("Parameters %s step:\n", s);
+	printf("\tpatch size k x k x kt = %dx%dx%d\n", prms.k, prms.k, prms.kt);
+	printf("\tprocessing step p = %d\n", prms.p);
+	printf("\tpred. search Nf   = %d\n", prms.Nf);
+	printf("\tpred. search Ns   = %d\n", prms.Ns);
+	printf("\tpred. search Npr  = %d\n", prms.Npr);
+	printf("\tpred. search Nb   = %d\n", prms.Nb);
+	printf("\tpred. search d    = %f\n", prms.d);
+	printf("\tpred. search N    = %d\n", prms.N);
+	printf("\tpred. search tau  = %f\n", prms.tau);
+	printf("\ttransform    T_2D = %d\n", prms.T_2D);
+	printf("\ttransform    T_3D = %d\n", prms.T_3D);
+	return;
+}
+
 
 /**
  * @file   main.cpp
@@ -342,6 +366,13 @@ int main(int argc, char **argv)
 
 	initializeParameters_1(prms_1, kHard, ktHard, NfHard, NsHard, NprHard, NbHard, pHard, NHard, dHard, tauHard, lambda3D, T_2D_hard, T_3D_hard, fSigma);
 	initializeParameters_2(prms_2, kWien, ktWien, NfWien, NsWien, NprWien, NbWien, pWien, NWien, dWien, tauWien, T_2D_wien, T_3D_wien, fSigma);
+
+	//! Print parameters
+	if (verbose)
+	{
+		printParameters(prms_1, "hard thresholding");
+		printParameters(prms_2, "Wiener filtering");
+	}
 
 	//! Declarations
 	Video<float> vid, vid_noisy, vid_basic, vid_denoised, vid_diff;
