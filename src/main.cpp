@@ -94,9 +94,9 @@ void initializeParameters_1(
 		prms.Nb = Nb;
 
 	if(d < 0)
-		prms.d = (7.*7.)/(255.*prms.k*prms.k);
+		prms.d = (7.*7.*255.)/(prms.k*prms.k);
 	else
-		prms.d = (d*d)/(255.*prms.k*prms.k);
+		prms.d = (d*d*255.)/(prms.k*prms.k);
 
 	if(p < 0)
 //		prms.p = 6;
@@ -110,7 +110,7 @@ void initializeParameters_1(
 		prms.N = N;
 
 	if(tau < 0)
-		prms.tau = (sigma > 30) ? 4500/(255.*255.) : 3000/(255.*255.);
+		prms.tau = (sigma > 30) ? 4500 : 3000;
 	else
 		prms.tau = tau;
 
@@ -189,9 +189,9 @@ void initializeParameters_2(
 		prms.Nb = Nb;
 
 	if(d < 0)
-		prms.d = (3.*3.)/(255.*prms.k*prms.k);
+		prms.d = (3.*3.*255.)/(prms.k*prms.k);
 	else
-		prms.d = (d*d)/(255.*prms.k*prms.k);
+		prms.d = (d*d*255.)/(prms.k*prms.k);
 
 	if(p < 0)
 //		prms.p = 4;
@@ -205,7 +205,7 @@ void initializeParameters_2(
 		prms.N = N;
 
 	if(tau < 0)
-		prms.tau = (sigma > 30) ? 3000/(255.*255.) : 1500/(255.*255.);
+		prms.tau = (sigma > 30) ? 3000 : 1500;
 	else
 		prms.tau = tau;
 
