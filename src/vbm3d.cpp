@@ -933,12 +933,12 @@ void vbm3d_2nd_step(
 
 inline float patchDistance(
 	unsigned patch1
-, 	unsigned patch2
-, 	const Video<float>& vid
-, 	int sizePatch
-, 	int sizePatchT
+,	unsigned patch2
+,	const Video<float>& vid
+,	int sizePatch
+,	int sizePatchT
 #ifdef MOTIONCOMP
-,   Video<float> &fflow
+,	Video<float> &fflow
 #endif
 ){
 	unsigned px, py, pt, pc;
@@ -950,42 +950,56 @@ inline float patchDistance(
 	const int sPx = sizePatch;
 	const int sPt = sizePatchT;
 
-	float dist = 0.f, dif;
-    for (unsigned ht = 0; ht < sPt; ht++)
-    {
-        for (unsigned hc = 0; hc < vid.sz.channels; ++hc)
-        for (unsigned hy = 0; hy < sPx; hy++)
-        for (unsigned hx = 0; hx < sPx; hx++)
-            dist += (dif = (vid(px + hx, py + hy, pt + ht, hc)
-                        - vid(qx + hx, qy + hy, qt + ht, hc))) * dif;
 #ifdef MOTIONCOMP
-        if(ht < sPt - 1)
-        {
-            unsigned old = px;
-            px = (unsigned) std::min(std::max((int)(px + std::round(fflow(px + sizePatch/2,py + sizePatch/2,pt+ht,0))), 0), (int)(vid.sz.width - sizePatch));
-            py = (unsigned) std::min(std::max((int)(py + std::round(fflow(old + sizePatch/2,py + sizePatch/2,pt+ht,1))), 0), (int)(vid.sz.height - sizePatch));
-            old = qx;
-            qx = (unsigned) std::min(std::max((int)(qx + std::round(fflow(qx + sizePatch/2,qy + sizePatch/2,qt+ht,0))), 0), (int)(vid.sz.width - sizePatch));
-            qy = (unsigned) std::min(std::max((int)(qy + std::round(fflow(old + sizePatch/2,qy + sizePatch/2,qt+ht,1))), 0), (int)(vid.sz.height - sizePatch));
-        }
+	using std::min;
+	using std::max;
+	using std::round;
+	const int W = vid.sz.width;
+	const int H = vid.sz.height;
 #endif
-    }
+
+	float dist = 0.f, dif;
+	for (unsigned ht = 0; ht < sPt; ht++)
+	{
+		for (unsigned hc = 0; hc < vid.sz.channels; ++hc)
+		for (unsigned hy = 0; hy < sPx; hy++)
+		for (unsigned hx = 0; hx < sPx; hx++)
+			dist += (dif = (vid(px + hx, py + hy, pt + ht, hc)
+			              - vid(qx + hx, qy + hy, qt + ht, hc))) * dif;
+#ifdef MOTIONCOMP
+		if(ht < sPt - 1)
+		{
+			unsigned old = px;
+			px = (unsigned) min(W - sPx, max(0,
+			     (int)(px + round(fflow(old + sPx/2, py + sPx/2, pt+ht, 0)))));
+			py = (unsigned) min(H - sPx, max(0,
+			     (int)(py + round(fflow(old + sPx/2, py + sPx/2, pt+ht, 1)))));
+
+			old = qx;
+			qx = (unsigned) min(W - sPx, max(0,
+			     (int)(qx + round(fflow(old + sPx/2, qy + sPx/2, qt+ht, 0)))));
+			qy = (unsigned) min(H - sPx, max(0,
+			     (int)(qy + round(fflow(old + sPx/2, qy + sPx/2, qt+ht, 1)))));
+		}
+#endif
+	}
+
 	return dist / (sPx * sPx * sPt * vid.sz.channels) / (255.f*255.f);
 }
 
 inline void localSearch(
 	unsigned pidx
-, 	unsigned rpidx
-, 	unsigned s
-, 	int k
-, 	int kt
-, 	unsigned Nb
+,	unsigned rpidx
+,	unsigned s
+,	int k
+,	int kt
+,	unsigned Nb
 ,	float d
-, 	const Video<float>& vid
-, 	std::unordered_map<unsigned, int>& alreadySeen
-, 	std::vector<std::pair<float, unsigned> >& bestPatches
+,	const Video<float>& vid
+,	std::unordered_map<unsigned, int>& alreadySeen
+,	std::vector<std::pair<float, unsigned> >& bestPatches
 #ifdef MOTIONCOMP
-,   Video<float> &fflow
+,	Video<float> &fflow
 #endif
 ){
 	int sWx = s;
@@ -1019,19 +1033,24 @@ inline void localSearch(
 
 	//! Compute distance between patches in search range
 	for (unsigned qy = rangey[0], dy = 0; qy <= rangey[1]; qy++, dy++)
-		for (unsigned qx = rangex[0], dx = 0; qx <= rangex[1]; qx++, dx++)
-		{
-			unsigned currentPatch = vid.sz.index(qx, qy, pt, 0);
+	for (unsigned qx = rangex[0], dx = 0; qx <= rangex[1]; qx++, dx++)
+	{
+		unsigned currentPatch = vid.sz.index(qx, qy, pt, 0);
 
-			//! Save distance and corresponding patch index
-			int seen = (alreadySeen[currentPatch]++);
-			if(seen == 0)
+		//! Save distance and corresponding patch index
+		int seen = (alreadySeen[currentPatch]++);
+		if(seen == 0)
+		{
 #ifdef MOTIONCOMP
-				distance.push_back((qx == rpx && qy == rpy) ? std::make_pair(patchDistance(rpidx, currentPatch, vid, sPx, sPt, fflow) - d, currentPatch):std::make_pair(patchDistance(rpidx, currentPatch, vid, sPx, sPt, fflow), currentPatch));
+			float dist = patchDistance(rpidx, currentPatch, vid, sPx, sPt, fflow)
+			           - ((qx == rpx && qy == rpy) ? d : 0);
 #else
-				distance.push_back((qx == rpx && qy == rpy) ? std::make_pair(patchDistance(rpidx, currentPatch, vid, sPx, sPt) - d, currentPatch):std::make_pair(patchDistance(rpidx, currentPatch, vid, sPx, sPt), currentPatch));
+			float dist = patchDistance(rpidx, currentPatch, vid, sPx, sPt)
+			           - ((qx == rpx && qy == rpy) ? d : 0);
 #endif
+			distance.push_back(std::make_pair(dist, currentPatch));
 		}
+	}
 
 	int nbCandidates = std::min(Nb, (unsigned)distance.size());
 	std::partial_sort(distance.begin(), distance.begin() + nbCandidates,
@@ -1046,14 +1065,14 @@ int computeSimilarPatches(
 ,	std::vector<unsigned>& index
 ,	unsigned pidx
 ,	const Video<float>& vid
-,   Video<float> &fflow
-,   Video<float> &bflow
+,	Video<float> &fflow
+,	Video<float> &bflow
 ,	const Parameters& prms
 ){
 	std::vector<std::pair<float, unsigned> > bestPatches;
 	bestPatches.reserve(prms.Nb*(2*prms.Nf+1));
 	std::unordered_map<unsigned, int> alreadySeen;
-    unsigned preIndex;
+	unsigned preIndex;
 
 	//! Coordinates of the reference patch
 	unsigned rpx, rpy, rpt, rpc;
@@ -1062,49 +1081,62 @@ int computeSimilarPatches(
 	//! Coordinates of the entry points
 	unsigned px, py, pt, pc;
 
+	using std::min;
+	using std::max;
+	using std::round;
+	int sPx = prms.k;
+	int W = vid.sz.width;
+	int H = vid.sz.height;
+
 	//! Search in the current frame
 #ifdef MOTIONCOMP
-	localSearch(pidx, pidx, prms.Ns, prms.k, prms.kt, prms.Nb, prms.d, vid, alreadySeen, bestPatches, fflow);
+	localSearch(pidx, pidx, prms.Ns, prms.k, prms.kt, prms.Nb, prms.d, vid,
+			alreadySeen, bestPatches, fflow);
 #else
-	localSearch(pidx, pidx, prms.Ns, prms.k, prms.kt, prms.Nb, prms.d, vid, alreadySeen, bestPatches);
+	localSearch(pidx, pidx, prms.Ns, prms.k, prms.kt, prms.Nb, prms.d, vid,
+			alreadySeen, bestPatches);
 #endif
 
 	//! Search in the following frames (centered on the matches)
-	int finalFrame = std::min(rpt + prms.Nf, vid.sz.frames - prms.kt) - rpt;	
-    preIndex = pidx;
+	int finalFrame = std::min(rpt + prms.Nf, vid.sz.frames - prms.kt) - rpt;
+	preIndex = pidx;
 	for(unsigned nextFrame = 0; nextFrame < finalFrame; ++nextFrame)
 	{
-        vid.sz.coords(preIndex, px, py, pt, pc);
-        px = std::min(std::max((int)(px + std::round(fflow(px + prms.k/2,py + prms.k/2,pt,0))), 0), (int)(vid.sz.width - prms.k));
-        py = std::min(std::max((int)(py + std::round(fflow(px + prms.k/2,py + prms.k/2,pt,1))), 0), (int)(vid.sz.height - prms.k));
-        preIndex = vid.sz.index(px, py, pt + 1, pc);
+		vid.sz.coords(preIndex, px, py, pt, pc);
+		px = min(max((int)(px + round(fflow(px + sPx/2,py + sPx/2,pt,0))), 0), W - sPx);
+		py = min(max((int)(py + round(fflow(px + sPx/2,py + sPx/2,pt,1))), 0), H - sPx);
+		preIndex = vid.sz.index(px, py, pt + 1, pc);
 #ifdef MOTIONCOMP
-        localSearch(preIndex, pidx, prms.Npr, prms.k, prms.kt, prms.Nb, prms.d, vid, alreadySeen, bestPatches, fflow);
+		localSearch(preIndex, pidx, prms.Npr, prms.k, prms.kt, prms.Nb, prms.d, vid,
+				alreadySeen, bestPatches, fflow);
 #else
-        localSearch(preIndex, pidx, prms.Npr, prms.k, prms.kt, prms.Nb, prms.d, vid, alreadySeen, bestPatches);
+		localSearch(preIndex, pidx, prms.Npr, prms.k, prms.kt, prms.Nb, prms.d, vid,
+				alreadySeen, bestPatches);
 #endif
 	}
 
 	//! Search in the previous frames (centered on the backward optical flow)
-	finalFrame = rpt - std::max((int)(rpt - prms.Nf), 0);	
-    preIndex = pidx;
+	finalFrame = rpt - std::max((int)(rpt - prms.Nf), 0);
+	preIndex = pidx;
 	for(unsigned nextFrame = 0; nextFrame < finalFrame; ++nextFrame)
 	{
-        vid.sz.coords(preIndex, px, py, pt, pc);
-        px = std::min(std::max((int)(px + std::round(bflow(px + prms.k/2,py + prms.k/2,pt-1,0))), 0), (int)(vid.sz.width - prms.k));
-        py = std::min(std::max((int)(py + std::round(bflow(px + prms.k/2,py + prms.k/2,pt-1,1))), 0), (int)(vid.sz.height - prms.k));
-        preIndex = vid.sz.index(px, py, pt - 1, pc);
+		vid.sz.coords(preIndex, px, py, pt, pc);
+		px = min(max((int)(px + round(bflow(px + sPx/2,py + sPx/2,pt-1,0))), 0), W - sPx);
+		py = min(max((int)(py + round(bflow(px + sPx/2,py + sPx/2,pt-1,1))), 0), H - sPx);
+		preIndex = vid.sz.index(px, py, pt - 1, pc);
 #ifdef MOTIONCOMP
-        localSearch(preIndex, pidx, prms.Npr, prms.k, prms.kt, prms.Nb, prms.d, vid, alreadySeen, bestPatches, fflow);
+		localSearch(preIndex, pidx, prms.Npr, prms.k, prms.kt, prms.Nb, prms.d, vid,
+				alreadySeen, bestPatches, fflow);
 #else
-        localSearch(preIndex, pidx, prms.Npr, prms.k, prms.kt, prms.Nb, prms.d, vid, alreadySeen, bestPatches);
+		localSearch(preIndex, pidx, prms.Npr, prms.k, prms.kt, prms.Nb, prms.d, vid,
+				alreadySeen, bestPatches);
 #endif
 	}
 
 	const unsigned nSimP = std::min(prms.N, (unsigned)bestPatches.size());
 
 	std::partial_sort(bestPatches.begin(), bestPatches.begin() + nSimP,
-			bestPatches.end(), comparaisonFirst);
+	                  bestPatches.end(), comparaisonFirst);
 
 	for (unsigned n = 0; n < nSimP; n++)
 	{
@@ -1116,16 +1148,16 @@ int computeSimilarPatches(
 	while((output[ind_thresh] > prms.tau) && (ind_thresh > 0))
 		ind_thresh--;
 
-    int candidates = closest_power_of_2(ind_thresh+1);
+	int candidates = closest_power_of_2(ind_thresh+1);
 
 #ifdef MTRICK
-    // Artificially adds a candidate when there's only the reference patch left 
-    if(candidates == 1)
-    {
-        candidates = 2;
-        output[1] = output[0];
-        index[1] = index[0];
-    }
+	// Artificially adds a candidate when there's only the reference patch left
+	if(candidates == 1)
+	{
+		candidates = 2;
+		output[1] = output[0];
+		index[1] = index[0];
+	}
 #endif
 
 	return candidates;
