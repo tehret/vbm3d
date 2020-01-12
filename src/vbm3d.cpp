@@ -120,7 +120,7 @@ int run_vbm3d(
 
 #ifdef _OPENMP
 	cout << "Open MP used" << endl;
-	nb_threads = omp_get_max_threads();
+	nb_threads = 4;//omp_get_max_threads();
 	if(nb_threads > 32)
 		nb_threads = 32;
 
@@ -1052,8 +1052,11 @@ int computeSimilarPatches(
 ){
 	std::vector<std::pair<float, unsigned> > bestPatches;
 	bestPatches.reserve(prms.Nb*(2*prms.Nf+1));
+	std::vector<unsigned> tempMatchesPre(prms.Nb);
+	std::vector<unsigned> tempMatchesPost(prms.Nb);
+	std::vector<std::pair<float, unsigned> > frameBestPatches;
+	frameBestPatches.reserve(prms.Nb*prms.Nb);
 	std::unordered_map<unsigned, int> alreadySeen;
-    unsigned preIndex;
 
 	//! Coordinates of the reference patch
 	unsigned rpx, rpy, rpt, rpc;
@@ -1068,37 +1071,66 @@ int computeSimilarPatches(
 #else
 	localSearch(pidx, pidx, prms.Ns, prms.k, prms.kt, prms.Nb, prms.d, vid, alreadySeen, bestPatches);
 #endif
+	for(unsigned ix = 0; ix < prms.Nb; ++ix)
+	{
+		tempMatchesPre[ix] = bestPatches[ix].second;
+		tempMatchesPost[ix] = bestPatches[ix].second;
+	}
 
 	//! Search in the following frames (centered on the matches)
 	int finalFrame = std::min(rpt + prms.Nf, vid.sz.frames - prms.kt) - rpt;	
-    preIndex = pidx;
 	for(unsigned nextFrame = 0; nextFrame < finalFrame; ++nextFrame)
 	{
-        vid.sz.coords(preIndex, px, py, pt, pc);
-        px = std::min(std::max((int)(px + std::round(fflow(px + prms.k/2,py + prms.k/2,pt,0))), 0), (int)(vid.sz.width - prms.k));
-        py = std::min(std::max((int)(py + std::round(fflow(px + prms.k/2,py + prms.k/2,pt,1))), 0), (int)(vid.sz.height - prms.k));
-        preIndex = vid.sz.index(px, py, pt + 1, pc);
+		frameBestPatches.clear();
+		for(unsigned currentTempMatch = 0; currentTempMatch < prms.Nb; ++currentTempMatch)
+		{
+			vid.sz.coords(tempMatchesPost[currentTempMatch], px, py, pt, pc);
+            px = std::min(std::max((int)(px + std::round(fflow(px + prms.k/2,py + prms.k/2,pt,0))), 0), (int)(vid.sz.width - prms.k));
+            py = std::min(std::max((int)(py + std::round(fflow(px + prms.k/2,py + prms.k/2,pt,1))), 0), (int)(vid.sz.height - prms.k));
+			unsigned currentMatch = vid.sz.index(px, py, pt + 1, pc);
 #ifdef MOTIONCOMP
-        localSearch(preIndex, pidx, prms.Npr, prms.k, prms.kt, prms.Nb, prms.d, vid, alreadySeen, bestPatches, fflow);
+            localSearch(currentMatch, pidx, prms.Npr, prms.k, prms.kt, prms.Nb, prms.d, vid, alreadySeen, frameBestPatches, fflow);
 #else
-        localSearch(preIndex, pidx, prms.Npr, prms.k, prms.kt, prms.Nb, prms.d, vid, alreadySeen, bestPatches);
+            localSearch(currentMatch, pidx, prms.Npr, prms.k, prms.kt, prms.Nb, prms.d, vid, alreadySeen, frameBestPatches);
 #endif
+		}
+
+		int nbCandidates = std::min(prms.Nb, (unsigned)frameBestPatches.size());
+		std::partial_sort(frameBestPatches.begin(), frameBestPatches.begin() + nbCandidates,
+				frameBestPatches.end(), comparaisonFirst);
+		for(unsigned ix = 0; ix < nbCandidates; ++ix)
+		{
+			tempMatchesPost[ix] = frameBestPatches[ix].second;
+			bestPatches.push_back(frameBestPatches[ix]);
+		}
 	}
 
 	//! Search in the previous frames (centered on the backward optical flow)
 	finalFrame = rpt - std::max((int)(rpt - prms.Nf), 0);	
-    preIndex = pidx;
 	for(unsigned nextFrame = 0; nextFrame < finalFrame; ++nextFrame)
 	{
-        vid.sz.coords(preIndex, px, py, pt, pc);
-        px = std::min(std::max((int)(px + std::round(bflow(px + prms.k/2,py + prms.k/2,pt-1,0))), 0), (int)(vid.sz.width - prms.k));
-        py = std::min(std::max((int)(py + std::round(bflow(px + prms.k/2,py + prms.k/2,pt-1,1))), 0), (int)(vid.sz.height - prms.k));
-        preIndex = vid.sz.index(px, py, pt - 1, pc);
+		frameBestPatches.clear();
+		for(unsigned currentTempMatch = 0; currentTempMatch < prms.Nb; ++currentTempMatch)
+		{
+			vid.sz.coords(tempMatchesPre[currentTempMatch], px, py, pt, pc);
+            px = std::min(std::max((int)(px + std::round(bflow(px + prms.k/2,py + prms.k/2,pt-1,0))), 0), (int)(vid.sz.width - prms.k));
+            py = std::min(std::max((int)(py + std::round(bflow(px + prms.k/2,py + prms.k/2,pt-1,1))), 0), (int)(vid.sz.height - prms.k));
+			unsigned currentMatch = vid.sz.index(px, py, pt - 1, pc);
 #ifdef MOTIONCOMP
-        localSearch(preIndex, pidx, prms.Npr, prms.k, prms.kt, prms.Nb, prms.d, vid, alreadySeen, bestPatches, fflow);
+            localSearch(currentMatch, pidx, prms.Npr, prms.k, prms.kt, prms.Nb, prms.d, vid, alreadySeen, frameBestPatches, fflow);
 #else
-        localSearch(preIndex, pidx, prms.Npr, prms.k, prms.kt, prms.Nb, prms.d, vid, alreadySeen, bestPatches);
+            localSearch(currentMatch, pidx, prms.Npr, prms.k, prms.kt, prms.Nb, prms.d, vid, alreadySeen, frameBestPatches);
 #endif
+		}
+
+		int nbCandidates = std::min(prms.Nb, (unsigned)frameBestPatches.size());
+		std::partial_sort(frameBestPatches.begin(), frameBestPatches.begin() + nbCandidates,
+				frameBestPatches.end(), comparaisonFirst);
+		for(unsigned ix = 0; ix < nbCandidates; ++ix)
+		{
+			tempMatchesPre[ix] = frameBestPatches[ix].second;
+			bestPatches.push_back(frameBestPatches[ix]);
+		}
 	}
 
 	const unsigned nSimP = std::min(prms.N, (unsigned)bestPatches.size());
@@ -1370,8 +1402,8 @@ void bior_2d_process(
                 if(ht < ktHW - 1)
                 {
                     unsigned oldi = i;
-                    i = (unsigned) std::min(std::max((int)(i + std::round(fflow(j + kHW/2,i + kHW/2,t+ht,0))), 0), (int)(vid.sz.width - kHW));
-                    j = (unsigned) std::min(std::max((int)(j + std::round(fflow(j + kHW/2,oldi + kHW/2,t+ht,1))), 0), (int)(vid.sz.height - kHW));
+                    i = (unsigned) std::min(std::max((int)(i + std::round(fflow(j + kHW/2,i + kHW/2,t+ht,1))), 0), (int)(vid.sz.height - kHW));
+                    j = (unsigned) std::min(std::max((int)(j + std::round(fflow(j + kHW/2,oldi + kHW/2,t+ht,0))), 0), (int)(vid.sz.width - kHW));
                 }
 #endif
             }

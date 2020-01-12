@@ -13,8 +13,7 @@ Alessandro Foi, and Karen Egiazarian. "Video denoising by sparse 3D transform-do
 collaborative filtering." 2007 15th European Signal Processing Conference. IEEE, 2007".
 
 This code is part of an [IPOL](http://www.ipol.im/) publication. Plase cite it
-if you use this code as part of your research. (The article is not already published 
-at this time)
+if you use this code as part of your research. ([arxiv](https://arxiv.org/abs/2001.01802))
 It is based on Marc Lebrun's code for the image denoising version of this algorithm (BM3D)
 available on [the BM3D IPOL page](http://www.ipol.im/pub/art/2012/l-bm3d/).
 
