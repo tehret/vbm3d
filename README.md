@@ -1,3 +1,5 @@
+/!\ Motion compensation doesn't work as well as it should. I will try to fix that as soon as I find the problem.
+
 IMPLEMENTATION OF THE VIDEO DENOISING ALGORITHM VBM3D
 =====================================================
 
