@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2018, Thibaud Ehret <ehret.thibaud@gmail.com>
+ * Copyright (c) 2018, Pablo Arias <pablo.arias@upf.edu>
  * All rights reserved.
  *
  * This program is free software: you can use, modify and/or
@@ -192,7 +193,8 @@ int run_vbm3d(
 #endif
 			cout << "done." << endl;
 			for (unsigned k = 0; k < vid_noisy.sz.whcf; k++)
-				vid_basic(k) = (denominator(k) == 0) ? vid_noisy(k) : numerator(k) / denominator(k);
+				vid_basic(k) = (denominator(k) == 0) ? vid_noisy(k)
+                                                : numerator(k) / denominator(k);
 		}
 		else
 			cout << "skipping 1st step." << endl;
@@ -635,7 +637,7 @@ void vbm3d_1st_step(
 								table_2D[k + n * kHard_2_t + c * kHard_2_t * prms.N];
 
                 //! Transform along the temporal dimension
-				if(prms.kt > 1)
+				if(prms.kt > 1 && prms.T_2D != BIOR)
 #ifdef SLOW3D
 					temporal_transform(group_3D, prms.k, prms.kt,
 							chnls, nSx_r, prms.N, plan_1d);
@@ -654,7 +656,7 @@ void vbm3d_1st_step(
 							prms.kt, chnls, sigma_table, prms.lambda3D, weight_table);
 
 				//! Inverse transform along the temporal dimension
-				if(prms.kt > 1)
+				if(prms.kt > 1 && prms.T_2D != BIOR)
 #ifdef SLOW3D
 					temporal_inv_transform(group_3D, prms.k, prms.kt, chnls, nSx_r,
 							prms.N, plan_1d_inv);
@@ -907,7 +909,7 @@ void vbm3d_2nd_step(
 					}
 
                 //! Transform along the temporal dimension
-				if(prms.kt > 1)
+				if(prms.kt > 1 && prms.T_2D != BIOR)
 				{
 #ifdef SLOW3D
 					temporal_transform(group_3D_est, prms.k, prms.kt, chnls, nSx_r,
@@ -930,7 +932,7 @@ void vbm3d_2nd_step(
 							prms.k, prms.kt, chnls, sigma_table, weight_table);
 
 				//! Transform along the temporal dimension
-				if(prms.kt > 1)
+				if(prms.kt > 1 && prms.T_2D != BIOR)
 				{
 #ifdef SLOW3D
 					temporal_inv_transform(group_3D_est, prms.k, prms.kt, chnls,
@@ -1009,8 +1011,8 @@ inline float patchDistance(
 	unsigned patch1
 ,	unsigned patch2
 ,	const Video<float>& vid
-,	int sizePatch
-,	int sizePatchT
+,	int sPx
+,	int sPt
 #ifdef MOTIONCOMP
 ,	Video<float> &fflow
 #endif
@@ -1020,9 +1022,6 @@ inline float patchDistance(
 
 	unsigned qx, qy, qt, qc; 
 	vid.sz.coords(patch2, qx, qy, qt, qc);
-
-	const int sPx = sizePatch;
-	const int sPt = sizePatchT;
 
 #ifdef MOTIONCOMP
 	using std::min;
@@ -2003,7 +2002,6 @@ void temporal_transform(
 	//! Declarations
 	const unsigned kHW_2 = kHW * kHW;
 	const unsigned kHW_2_t = kHW_2 * ktHW;
-	const float norm = 1./sqrt(2.);
 
 	//! Temporal transform 
 	for (unsigned c = 0; c < chnls; c++)
@@ -2011,8 +2009,8 @@ void temporal_transform(
 		for(unsigned n = 0; n < nSx_r; ++n)
 		for(unsigned k = 0; k < kHW_2; ++k)
 		{
-			float temp = (group_3D[n + k*nSx_r + c*kHW_2_t*nSx_r] - group_3D[n + (k+kHW_2)*nSx_r + c*kHW_2_t*nSx_r])*norm;
-			group_3D[n + k*nSx_r + c*kHW_2_t*nSx_r] = (group_3D[n + k*nSx_r + c*kHW_2_t*nSx_r] + group_3D[n + (k+kHW_2)*nSx_r + c*kHW_2_t*nSx_r])*norm;
+			float temp = SQRT2_INV * (group_3D[n + k*nSx_r + c*kHW_2_t*nSx_r] - group_3D[n + (k+kHW_2)*nSx_r + c*kHW_2_t*nSx_r]);
+			group_3D[n + k*nSx_r + c*kHW_2_t*nSx_r] = SQRT2_INV*(group_3D[n + k*nSx_r + c*kHW_2_t*nSx_r] + group_3D[n + (k+kHW_2)*nSx_r + c*kHW_2_t*nSx_r]);
 			group_3D[n + (k+kHW_2)*nSx_r + c*kHW_2_t*nSx_r] = temp;
 		}
 	}
@@ -2028,7 +2026,6 @@ void temporal_inv_transform(
 	//! Declarations
 	const unsigned kHW_2 = kHW * kHW;
 	const unsigned kHW_2_t = kHW_2 * ktHW;
-	const float norm = 1./sqrt(2.);
 
 	//! Temporal transform 
 	for (unsigned c = 0; c < chnls; c++)
@@ -2036,8 +2033,8 @@ void temporal_inv_transform(
 		for(unsigned n = 0; n < nSx_r; ++n)
 		for(unsigned k = 0; k < kHW_2; ++k)
 		{
-			float temp = (group_3D[n + k*nSx_r + c*kHW_2_t*nSx_r] - group_3D[n + (k+kHW_2)*nSx_r + c*kHW_2_t*nSx_r])*norm;
-			group_3D[n + k*nSx_r + c*kHW_2_t*nSx_r] = (group_3D[n + k*nSx_r + c*kHW_2_t*nSx_r] + group_3D[n + (k+kHW_2)*nSx_r + c*kHW_2_t*nSx_r])*norm;
+			float temp = SQRT2_INV * (group_3D[n + k*nSx_r + c*kHW_2_t*nSx_r] - SQRT2 * group_3D[n + (k+kHW_2)*nSx_r + c*kHW_2_t*nSx_r]);
+			group_3D[n + k*nSx_r + c*kHW_2_t*nSx_r] = SQRT2_INV * (group_3D[n + k*nSx_r + c*kHW_2_t*nSx_r] + SQRT2 * group_3D[n + (k+kHW_2)*nSx_r + c*kHW_2_t*nSx_r]);
 			group_3D[n + (k+kHW_2)*nSx_r + c*kHW_2_t*nSx_r] = temp;
 		}
 	}
@@ -2085,7 +2082,7 @@ void temporal_transform(
 		for (unsigned k = 0; k < kHW_2; k++)
 		for (unsigned kt = 0; kt < ktHW; kt++)
 			group_3D[n + (k+kt*kHW_2)*nSx_r + c*kHW_2_t*nSx_r] =
-				dct[k*ktHW + kt + dc_p + n * kHW_2_t] * norm;
+				dct[k*ktHW + kt + dc_p + n * kHW_2_t] * norm * (kt==0?SQRT2_INV:1.);
 	}
 	fftwf_free(dct);
 }
@@ -2116,7 +2113,7 @@ void temporal_inv_transform(
 		for(unsigned n = 0; n < nSx_r; ++n)
 		for(unsigned k = 0; k < kHW_2; ++k)
 		for (unsigned kt = 0; kt < ktHW; kt++)
-			dct[k*ktHW + kt + dc_p + n * kHW_2_t] = group_3D[n + (k+kt*kHW_2)*nSx_r + c*kHW_2_t*nSx_r];
+			dct[k*ktHW + kt + dc_p + n * kHW_2_t] = group_3D[n + (k+kt*kHW_2)*nSx_r + c*kHW_2_t*nSx_r] * (kt==0?SQRT2:1.);
 	}
 
 	//! Process of all DCTs
