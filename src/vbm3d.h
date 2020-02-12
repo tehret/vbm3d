@@ -25,10 +25,8 @@
 int run_vbm3d(
     const float sigma
 ,   Video<float> &vid_noisy
-#ifdef OPTICALFLOW
 ,   Video<float> &fflow
 ,   Video<float> &bflow
-#endif
 ,   Video<float> &vid_basic
 ,   Video<float> &vid_denoised
 ,   const Parameters& prms_1
@@ -40,17 +38,13 @@ int run_vbm3d(
 void vbm3d_1st_step(
     const float sigma
 ,   Video<float> const& vid_noisy
-#ifdef OPTICALFLOW
 ,   Video<float> &fflow
 ,   Video<float> &bflow
-#endif
 ,   const Parameters& prms
 ,   fftwf_plan *  plan_2d
 ,   fftwf_plan *  plan_2d_inv
-#ifdef SLOW3D
 ,   fftwf_plan *  plan_1d
 ,   fftwf_plan *  plan_1d_inv
-#endif
 ,   VideoUtils::CropPosition* crop
 ,   const unsigned color_space
 ,   Video<float>& numberator
@@ -62,17 +56,13 @@ void vbm3d_2nd_step(
     const float sigma
 ,   Video<float> const& vid_noisy
 ,   Video<float> const& vid_basic
-#ifdef OPTICALFLOW
 ,   Video<float> &fflow
 ,   Video<float> &bflow
-#endif
 ,   const Parameters& prms
 ,   fftwf_plan *  plan_2d
 ,   fftwf_plan *  plan_2d_inv
-#ifdef SLOW3D
 ,   fftwf_plan *  plan_1d
 ,   fftwf_plan *  plan_1d_inv
-#endif
 ,   VideoUtils::CropPosition* crop
 ,   const unsigned color_space
 ,   Video<float>& numberator
@@ -88,9 +78,8 @@ void dct_2d_process(
 ,   const unsigned kHW
 ,   const unsigned ktHW
 ,   std::vector<float> const& coef_norm
-#ifdef MOTIONCOMP
 ,   Video<float> &fflow
-#endif
+,   bool mc
 );
 
 int computeSimilarPatches(
@@ -98,10 +87,8 @@ int computeSimilarPatches(
 ,	std::vector<unsigned>& indexes
 ,	unsigned idx
 ,	const Video<float>& vid
-#ifdef OPTICALFLOW
 ,   Video<float> &fflow
 ,   Video<float> &bflow
-#endif
 ,	const Parameters& prms
 );
 
@@ -114,9 +101,8 @@ void bior_2d_process(
 ,   const unsigned ktHW
 ,   std::vector<float> &lpd
 ,   std::vector<float> &hpd
-#ifdef MOTIONCOMP
 ,   Video<float> &fflow
-#endif
+,   bool mc
 );
 
 void dct_2d_inv(
@@ -204,23 +190,6 @@ void bior1_5_transform(
 ,   const unsigned N_o
 );
 
-#ifndef SLOW3D
-void temporal_transform(
-    std::vector<float>& group_3D
-,   const unsigned kHW
-,   const unsigned ktHW
-,   const unsigned chnls
-,   const unsigned nSx_r
-);
-
-void temporal_inv_transform(
-std::vector<float>& group_3D
-,   const unsigned kHW
-,   const unsigned ktHW
-,   const unsigned chnls
-,   const unsigned nSx_r
-);
-#else
 void temporal_transform(
 std::vector<float>& group_3D
 ,   const unsigned kHW
@@ -240,7 +209,6 @@ std::vector<float>& group_3D
 ,   const unsigned N
 ,   fftwf_plan * plan
 );
-#endif
 
 /** ---------------------------------- **/
 /** - Preprocessing / Postprocessing - **/

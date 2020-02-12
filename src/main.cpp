@@ -33,16 +33,6 @@
 #define HAAR      7
 #define NONE      8
 
-//#define MOTIONCOMP
-//#define SLOW3D
-//#define OPTICALFLOW
-
-// OPTICALFLOW is necessary for montion compensation
-#ifdef MOTIONCOMP
-#define OPTICALFLOW
-#endif
-
-
 using namespace std;
 
 void initializeParameters_1(
@@ -244,9 +234,10 @@ void printParameters(const Parameters& prms, const string suffix)
     printf("\tpred. search d     = %f\n", prms.d);
     printf("\tpred. search N     = %d\n", prms.N);
     printf("\tpred. search tau   = %f\n", prms.tau);
-    printf("\ttransform    T_2D  = %d\n", prms.T_2D);
-    printf("\ttransform    T_3D  = %d\n", prms.T_3D);
+    printf("\ttransform T_2D     = %d\n", prms.T_2D);
+    printf("\ttransform T_3D     = %d\n", prms.T_3D);
     printf("\tthreshold lambda3D = %f\n", prms.lambda3D);
+    printf("\tmotion comp.       = %s\n", prms.mc ? "true" : "false");
     return;
 }
 
@@ -269,10 +260,8 @@ int main(int argc, char **argv)
     const string  basic_path = clo_option("-bsic" , "bsic_%03d.tiff" , "> Basic denoised sequence");
     const string   diff_path = clo_option("-diff" , ""               , "> Difference sequence (only when -add is true)");
     const string   meas_path = clo_option("-meas" , "measure.txt"    , "> Text file with PSNR/RMSE (only when -add is true)");
-#ifdef OPTICALFLOW
     const string  fflow_path = clo_option("-fflow", ""  , "< Forward optical flow ");
     const string  bflow_path = clo_option("-bflow", ""  , "< Backward optical flow ");
-#endif
 
     const unsigned firstFrame = clo_option("-f", 0, "< Index of the first frame");
     const unsigned lastFrame  = clo_option("-l", 0, "< Index of the last frame");
@@ -312,18 +301,13 @@ int main(int argc, char **argv)
     const unsigned T_3D_wien  = (unsigned) clo_option("-T3dw", NONE , "< 1D transform (first pass), choice is 6 (hadamard) or 7 (haar)");
 
     const unsigned color_space  =  (unsigned) clo_option("-color", 0 , "< Set the color space (0 correspond to RGB->OPP, any other value keeps RGB for now)");
+    const bool mc  = (bool) clo_option("-mc", false, "< Motion compensation for 3d patches");
 
     //! Check inputs
     if (input_path == "")
         return fprintf(stderr, "%s: no input images.\n"
                 "Try `%s --help' for more information.\n", argv[0], argv[0]),
                EXIT_FAILURE;
-#ifdef OPTICALFLOW
-    if (fflow_path == "" || bflow_path == "")
-        return fprintf(stderr, "%s: no forward and backward flows.\n"
-                "Try `%s --help' for more information.\n", argv[0], argv[0]),
-               EXIT_FAILURE;
-#endif
 
     //! Check for invalid inputs
     if (T_2D_hard != NONE && T_2D_hard != DCT && T_2D_hard != BIOR)
@@ -353,8 +337,10 @@ int main(int argc, char **argv)
     initializeParameters_1(prms_1, kHard, ktHard, NfHard, NsHard, NprHard,
             NbHard, pHard, NHard, dHard, tauHard, lambda3D, T_2D_hard, T_3D_hard,
             fSigma);
+    prms_1.mc = mc;
     initializeParameters_2(prms_2, kWien, ktWien, NfWien, NsWien, NprWien,
             NbWien, pWien, NWien, dWien, tauWien, T_2D_wien, T_3D_wien, fSigma);
+    prms_2.mc = mc;
 
     //! Print parameters
     if (verbose)
@@ -365,20 +351,30 @@ int main(int argc, char **argv)
 
     //! Declarations
     Video<float> vid, vid_noisy, vid_basic, vid_denoised, vid_diff;
-
-#ifdef OPTICALFLOW
-    Video<float> fflow;
-    Video<float> bflow;
-#endif
+    Video<float> fflow, bflow;
 
     //! Load video
     vid.loadVideo(input_path, firstFrame, lastFrame, frameStep);
     if(kHard == 0)
         vid_basic.loadVideo(inbsc_path, firstFrame, lastFrame, frameStep);
 
-#ifdef OPTICALFLOW
-    fflow.loadFullFlow(fflow_path, firstFrame, lastFrame-1, frameStep);
-    bflow.loadFullFlow(bflow_path, firstFrame+1, lastFrame, frameStep);
+    if(fflow_path == "")
+    {
+        fflow.resize(vid.sz.width, vid.sz.height, vid.sz.frames, 2);
+        for(int i = 0; i < fflow.sz.whcf; ++i)
+            fflow(i) = 0;
+    }
+    else
+        fflow.loadFullFlow(fflow_path, firstFrame, lastFrame-1, frameStep);
+
+    if(bflow_path == "")
+    {
+        bflow.resize(vid.sz.width, vid.sz.height, vid.sz.frames, 2);
+        for(int i = 0; i < bflow.sz.whcf; ++i)
+            bflow(i) = 0;
+    }
+    else
+        bflow.loadFullFlow(bflow_path, firstFrame+1, lastFrame, frameStep);
 
     // Check that all sizes are consistent
     if(fflow.sz.width  != bflow.sz.width  || fflow.sz.width  != vid.sz.width ||
@@ -387,17 +383,12 @@ int main(int argc, char **argv)
                 "Try `%s --help' for more information.\n", argv[0], argv[0]),
                EXIT_FAILURE;
 
-#endif
-
     vid_noisy.resize(vid.sz);
     vid_diff.resize(vid.sz);
 
     //! Add noise
     if(addnoise)
-    {
-        printf("Add noise with sigma = %f to input video\n", fSigma);
         VideoUtils::addNoise(vid, vid_noisy, fSigma, verbose);
-    }
     else
     {
         printf("Noisy input video with sigma = %f\n", fSigma);
@@ -405,15 +396,9 @@ int main(int argc, char **argv)
     }
 
     //! Denoising
-#ifdef OPTICALFLOW
     if (run_vbm3d(fSigma, vid_noisy, fflow, bflow, vid_basic, vid_denoised,
                 prms_1, prms_2, color_space) != EXIT_SUCCESS)
         return EXIT_FAILURE;
-#else
-    if (run_vbm3d(fSigma, vid_noisy, vid_basic, vid_denoised, prms_1, prms_2,
-                color_space) != EXIT_SUCCESS)
-        return EXIT_FAILURE;
-#endif
 
     //! Compute PSNR and RMSE
     if (addnoise)

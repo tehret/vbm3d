@@ -48,7 +48,10 @@ struct Parameters
 	/// Type of the 1D tranform 
 	unsigned T_3D;
 	/// Threshold if it's a hard thresholding step
-	float lambda3D;
+	float lambda3D = 0.;
+
+	/// Motion compensation for 3d patches
+	bool mc = false;
 
 	/// Border of the tile when using the multithreading
 	int n = 16;

@@ -1,5 +1,3 @@
-/!\ Motion compensation doesn't work as well as it should. I will try to fix that as soon as I find the problem.
-
 IMPLEMENTATION OF THE VIDEO DENOISING ALGORITHM VBM3D
 =====================================================
 
@@ -48,17 +46,6 @@ parallelization enabled (if your system supports it).
 The code will then use the maximum number of thread available on your machine (up to 32). 
 This can be reduced by changing the maximum number of threads allowed in lines 126 and 127 
 of `vbm3d.cpp`.
-
-Different options can be activated during compilation (corresponding to different improvements
-suggested in the article). The default behaviour has every option off by default.
-```
-cmake .. -DSLOW3D=OFF -DMOTIONCOMP=OFF -DOPTICALFLOW=OFF
-```
-
-The options are the following:
-* `-DSLOW3D=1` allow the temporal dimension to be any value. Otherwise the maximum value is 2
-* `-DOPTICALFLOW=1` activate optical flow.
-* `-MOTIONCOMP=1` activate motion compensation. This option automatically activate optical flow.
 
 USAGE
 -----

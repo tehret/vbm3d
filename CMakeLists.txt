@@ -11,22 +11,13 @@ set(PROJECT_VERSION "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT
 
 ###############################################################################
 
-#set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -ggdb")
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wall -ggdb")
-set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -std=c++11 -Wall -O3 -w -s -ffast-math -fomit-frame-pointer -fstrength-reduce")
-
-set(CMAKE_BUILD_TYPE Release)
-#set(CMAKE_BUILD_TYPE Debug)
-
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99 -g")
-#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -g -fsanitize=address")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wall -O3 -w -s -ffast-math -fomit-frame-pointer -fstrength-reduce")
 
 ###############################################################################
 
 cmake_minimum_required(VERSION 2.8.2)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/cmake/modules/")
-#set(CMAKE_VERBOSE_MAKEFILE ON)
 
 ###############################################################################
 
@@ -54,30 +45,9 @@ endif()
 
 ###############################################################################
 
-if(SLOW3D)
-    message("-- Compiling with the slow temporal transform.")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DSLOW3D")
-endif()
-
-if(MOTIONCOMP)
-    message("-- Compiling with motion compensated patches.")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DMOTIONCOMP")
-    set(OPTICALFLOW "1")
-endif()
-
-if(OPTICALFLOW)
-    message("-- Compiling with the optical flow option activated.")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DOPTICALFLOW")
-endif()
-
-###############################################################################
-
 set(EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR}/bin)
 
 add_subdirectory(multiscaler)
 add_subdirectory(src)
 add_subdirectory(src/utils)
-
-if(OPTICALFLOW)
-    add_subdirectory(tvl1flow)
-endif()
+add_subdirectory(tvl1flow)
