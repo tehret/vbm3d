@@ -71,15 +71,13 @@ void vbm3d_2nd_step(
 
 //! Process 2D dct of a group of patches
 void dct_2d_process(
-    std::vector<float> &DCT_table_2D
-,   Video<float> const& vid
-,   std::vector<unsigned> const& patch_table 
-,   fftwf_plan * plan
-,   const unsigned kHW
-,   const unsigned ktHW
-,   std::vector<float> const& coef_norm
-,   Video<float> &fflow
-,   bool mc
+	std::vector<float> &DCT_table_2D
+,	Video<float> const& vid
+,	std::vector<unsigned> const& patch_table 
+,	fftwf_plan * plan
+,	std::vector<float> const& coef_norm
+,	Video<float> &fflow
+,	const Parameters& prms
 );
 
 int computeSimilarPatches(
@@ -87,22 +85,20 @@ int computeSimilarPatches(
 ,	std::vector<unsigned>& indexes
 ,	unsigned idx
 ,	const Video<float>& vid
-,   Video<float> &fflow
-,   Video<float> &bflow
+,	Video<float> &fflow
+,	Video<float> &bflow
 ,	const Parameters& prms
 );
 
 //! Process 2D bior1.5 transform of a group of patches
 void bior_2d_process(
-    std::vector<float> &bior_table_2D
-,   Video<float> const& vid
-,   std::vector<unsigned> const& patch_table 
-,   const unsigned kHW
-,   const unsigned ktHW
-,   std::vector<float> &lpd
-,   std::vector<float> &hpd
-,   Video<float> &fflow
-,   bool mc
+	std::vector<float> &bior_table_2D
+,	Video<float> const& vid
+,	std::vector<unsigned> const& patch_table
+,	std::vector<float> &lpd
+,	std::vector<float> &hpd
+,	Video<float> &fflow
+,	const Parameters& prms
 );
 
 void dct_2d_inv(
