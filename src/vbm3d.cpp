@@ -18,6 +18,8 @@
  * @author Thibaud Ehret <ehret.thibaud@gmail.com>
  **/
 
+#define FLOAT_TRAJECTORIES
+
 #include <iostream>
 #include <algorithm>
 #include <math.h>
@@ -413,8 +415,10 @@ void vbm3d_1st_step(
 ,   Video<float>& numerator
 ,   Video<float>& denominator
 ){
+	VideoSize sz = vid_noisy.sz;
+
 	//! Estimatation of sigma on each channel
-	const int chnls = vid_noisy.sz.channels;
+	const int chnls = sz.channels;
 	vector<float> sigma_table(chnls);
 	if (estimate_sigma(sigma, sigma_table, chnls, color_space) != EXIT_SUCCESS)
 		return;
@@ -422,7 +426,7 @@ void vbm3d_1st_step(
 	//! Initialization for convenience
 	vector<unsigned> row_ind(0);
 	if(crop == NULL)
-		ind_initialize(row_ind, 0, vid_noisy.sz.height - prms.k, prms.p);
+		ind_initialize(row_ind, 0, sz.height - prms.k, prms.p);
 	else
 		ind_initialize(row_ind, (crop->origin_y == 0) ? 0 : prms.n,
 				(crop->ending_y == crop->source_sz.height) ?
@@ -432,7 +436,7 @@ void vbm3d_1st_step(
 
 	vector<unsigned> column_ind(0);
 	if(crop == NULL)
-		ind_initialize(column_ind, 0, vid_noisy.sz.width - prms.k, prms.p);
+		ind_initialize(column_ind, 0, sz.width - prms.k, prms.p);
 	else
 		ind_initialize(column_ind, (crop->origin_x == 0) ? 0 : prms.n,
 				(crop->ending_x == crop->source_sz.width) ?
@@ -458,9 +462,9 @@ void vbm3d_1st_step(
 	bior15_coef(lpd, hpd, lpr, hpr);
 
 	//! Initialize aggregators
-	denominator.resize(vid_noisy.sz);
-	numerator.resize(vid_noisy.sz);
-	for (unsigned k = 0; k < vid_noisy.sz.whcf; k++)
+	denominator.resize(sz);
+	numerator.resize(sz);
+	for (unsigned k = 0; k < sz.whcf; k++)
 	{
 		numerator(k) = 0.f;
 		denominator(k) = 0.f;
@@ -474,7 +478,7 @@ void vbm3d_1st_step(
 	vector<float> table_2D(prms.N * chnls * kHard_2_t, 0.0f);
 
 	//! Loop on the frames
-	for(unsigned t_r = 0; t_r < vid_noisy.sz.frames - prms.kt + 1; ++t_r)
+	for(unsigned t_r = 0; t_r < sz.frames - prms.kt + 1; ++t_r)
 	{
 		//! Loop on i_r
 		for (unsigned ind_i = 0; ind_i < row_ind.size(); ind_i++)
@@ -493,7 +497,7 @@ void vbm3d_1st_step(
 				//! Number of similar patches
 				unsigned pidx;
 				if(crop == NULL) // The video is not a cropped, nothing to change
-					pidx = vid_noisy.sz.index(j_r, i_r, t_r, 0);
+					pidx = sz.index(j_r, i_r, t_r, 0);
 				else // The video is a cropped, we need to find the original position of the patch
 					pidx = vid_noisy.getIndexSymmetric(crop->origin_x + j_r,
 					                                   crop->origin_y + i_r,
@@ -569,8 +573,16 @@ void vbm3d_1st_step(
 					unsigned patch_j_r, patch_i_r, patch_t_r, patch_c_r;
 					for (unsigned n = 0; n < nSx_r; n++)
 					{
-						vid_noisy.sz.coords(patch_table[ind_j][n], patch_j_r,
-								patch_i_r, patch_t_r, patch_c_r);
+						sz.coords(patch_table[ind_j][n], patch_j_r,
+						          patch_i_r, patch_t_r, patch_c_r);
+
+#ifdef FLOAT_TRAJECTORIES
+						// Initialize sub-pixel patch trajectory
+						// (only needed if motion compensated patches are used)
+						float fpatch_j_r = patch_j_r;
+						float fpatch_i_r = patch_i_r;
+#endif
+
 						for (unsigned t = 0; t < prms.kt; t++)
 						{
 							for (unsigned p = 0; p < prms.k; p++)
@@ -583,11 +595,25 @@ void vbm3d_1st_step(
 								denominator(patch_j_r+q, patch_i_r+p, patch_t_r+t, c) +=
 									kaiser_window[p * prms.k + q] * wx_r_table[c + ind_j * chnls];
 							}
+
 							if(prms.mc && t < prms.kt - 1)
 							{
-								unsigned old = patch_j_r;
-								patch_j_r = (unsigned) std::min(std::max((int)(patch_j_r + std::round(fflow(old + prms.k/2,patch_i_r + prms.k/2,patch_t_r+t,0))), 0), (int)(vid_noisy.sz.width - prms.k));
-								patch_i_r = (unsigned) std::min(std::max((int)(patch_i_r + std::round(fflow(old + prms.k/2,patch_i_r + prms.k/2,patch_t_r+t,1))), 0), (int)(vid_noisy.sz.height - prms.k));
+								using std::max;
+								using std::min;
+								using std::round;
+#ifdef FLOAT_TRAJECTORIES
+								// Next point in subpixel patch trajectory
+								fpatch_j_r += fflow(patch_j_r + prms.k/2, patch_i_r + prms.k/2, patch_t_r + t, 0);
+								fpatch_i_r += fflow(patch_j_r + prms.k/2, patch_i_r + prms.k/2, patch_t_r + t, 1);
+								// Round to nearest integer
+								patch_j_r = (unsigned)min(max((int)round(fpatch_j_r), 0), (int)(sz.width  - prms.k));
+								patch_i_r = (unsigned)min(max((int)round(fpatch_i_r), 0), (int)(sz.height - prms.k));
+#else // int trajectories
+								int fflow_j = round(fflow(patch_j_r + prms.k/2, patch_i_r + prms.k/2, patch_t_r + t, 0));
+								int fflow_i = round(fflow(patch_j_r + prms.k/2, patch_i_r + prms.k/2, patch_t_r + t, 1));
+								patch_j_r = (unsigned)min(max((int)(patch_j_r + fflow_j), 0), (int)(sz.width  - prms.k));
+								patch_i_r = (unsigned)min(max((int)(patch_i_r + fflow_i), 0), (int)(sz.height - prms.k));
+#endif
 							}
 						}
 					}
@@ -636,8 +662,10 @@ void vbm3d_2nd_step(
 ,   Video<float>& numerator
 ,   Video<float>& denominator
 ){
+	VideoSize sz = vid_noisy.sz;
+
 	//! Estimatation of sigma on each channel
-	const int chnls = vid_noisy.sz.channels;
+	const int chnls = sz.channels;
 	vector<float> sigma_table(chnls);
 	if (estimate_sigma(sigma, sigma_table, chnls, color_space) != EXIT_SUCCESS)
 		return;
@@ -681,9 +709,9 @@ void vbm3d_2nd_step(
 	bior15_coef(lpd, hpd, lpr, hpr);
 
 	//! For aggregation part
-	denominator.resize(vid_noisy.sz);
-	numerator.resize(vid_noisy.sz);
-	for (unsigned k = 0; k < vid_noisy.sz.whcf; k++)
+	denominator.resize(sz);
+	numerator.resize(sz);
+	for (unsigned k = 0; k < sz.whcf; k++)
 	{
 		numerator(k) = 0.f;
 		denominator(k) = 0.f;
@@ -699,7 +727,7 @@ void vbm3d_2nd_step(
 	vector<float> table_2D_est(prms.N * chnls * kWien_2_t, 0.0f);
 
 	//§ Loop on the frames
-	for(unsigned t_r = 0; t_r < vid_noisy.sz.frames - prms.kt + 1; ++t_r)
+	for(unsigned t_r = 0; t_r < sz.frames - prms.kt + 1; ++t_r)
 	{
 		//! Loop on i_r
 		for (unsigned ind_i = 0; ind_i < row_ind.size(); ind_i++)
@@ -814,8 +842,16 @@ void vbm3d_2nd_step(
 					unsigned patch_j_r, patch_i_r, patch_t_r, patch_c_r;
 					for (unsigned n = 0; n < nSx_r; n++)
 					{
-						vid_noisy.sz.coords(patch_table[ind_j][n], patch_j_r,
-								patch_i_r, patch_t_r, patch_c_r);
+						sz.coords(patch_table[ind_j][n], patch_j_r,
+						          patch_i_r, patch_t_r, patch_c_r);
+
+#ifdef FLOAT_TRAJECTORIES
+						// Initialize sub-pixel patch trajectory
+						// (only needed if motion compensated patches are used)
+						float fpatch_j_r = patch_j_r;
+						float fpatch_i_r = patch_i_r;
+#endif
+
 						for (unsigned t = 0; t < prms.kt; t++)
 						{
 							for (unsigned p = 0; p < prms.k; p++)
@@ -828,11 +864,25 @@ void vbm3d_2nd_step(
 								denominator(patch_j_r+q, patch_i_r+p, patch_t_r+t, c) +=
 									kaiser_window[p * prms.k + q] * wx_r_table[c + ind_j * chnls];
 							}
+
 							if(prms.mc && t < prms.kt - 1)
 							{
-								unsigned old = patch_j_r;
-								patch_j_r = (unsigned) std::min(std::max((int)(patch_j_r + std::round(fflow(patch_j_r + prms.k/2,patch_i_r + prms.k/2,patch_t_r+t,0))), 0), (int)(vid_noisy.sz.width - prms.k));
-								patch_i_r = (unsigned) std::min(std::max((int)(patch_i_r + std::round(fflow(old + prms.k/2,patch_i_r + prms.k/2,patch_t_r+t,1))), 0), (int)(vid_noisy.sz.height - prms.k));
+								using std::max;
+								using std::min;
+								using std::round;
+#ifdef FLOAT_TRAJECTORIES
+								// Next point in subpixel patch trajectory
+								fpatch_j_r += fflow(patch_j_r + prms.k/2, patch_i_r + prms.k/2, patch_t_r + t, 0);
+								fpatch_i_r += fflow(patch_j_r + prms.k/2, patch_i_r + prms.k/2, patch_t_r + t, 1);
+								// Round to nearest integer
+								patch_j_r = (unsigned)min(max((int)round(fpatch_j_r), 0), (int)(sz.width  - prms.k));
+								patch_i_r = (unsigned)min(max((int)round(fpatch_i_r), 0), (int)(sz.height - prms.k));
+#else // int trajectories
+								int fflow_j = round(fflow(patch_j_r + prms.k/2, patch_i_r + prms.k/2, patch_t_r + t, 0));
+								int fflow_i = round(fflow(patch_j_r + prms.k/2, patch_i_r + prms.k/2, patch_t_r + t, 1));
+								patch_j_r = (unsigned)min(max((int)(patch_j_r + fflow_j), 0), (int)(sz.width  - prms.k));
+								patch_i_r = (unsigned)min(max((int)(patch_i_r + fflow_i), 0), (int)(sz.height - prms.k));
+#endif
 							}
 						}
 					}
@@ -851,7 +901,7 @@ inline float patchDistance(
 ,	int sPx
 ,	int sPt
 ,	Video<float> &fflow
-,   bool mc
+,	bool mc
 ){
 	unsigned px, py, pt, pc;
 	vid.sz.coords(patch1, px, py, pt, pc);
@@ -866,6 +916,12 @@ inline float patchDistance(
 	const int H = vid.sz.height;
 
 	float dist = 0.f, dif;
+#ifdef FLOAT_TRAJECTORIES
+	// Initialize sub-pixel patch trajectories
+	// (only needed if motion compensated patches are used)
+	float fpx = px, fpy = py;
+	float fqx = qx, fqy = qy;
+#endif
 	for (unsigned ht = 0; ht < sPt; ht++)
 	{
 		for (unsigned hc = 0; hc < vid.sz.channels; ++hc)
@@ -873,19 +929,34 @@ inline float patchDistance(
 		for (unsigned hx = 0; hx < sPx; hx++)
 			dist += (dif = (vid(px + hx, py + hy, pt + ht, hc)
 			              - vid(qx + hx, qy + hy, qt + ht, hc))) * dif;
+
 		if(mc && ht < sPt - 1)
 		{
-			unsigned old = px;
-			px = (unsigned) min(W - sPx, max(0,
-			     (int)(px + round(fflow(old+sPx/2, py+sPx/2, pt+ht, 0)))));
-			py = (unsigned) min(H - sPx, max(0,
-			     (int)(py + round(fflow(old+sPx/2, py+sPx/2, pt+ht, 1)))));
+#ifdef FLOAT_TRAJECTORIES
+			// Next point in subpixel patch trajectory
+			fpx += fflow(px + sPx/2, py + sPx/2, pt + ht, 0);
+			fpy += fflow(px + sPx/2, py + sPx/2, pt + ht, 1);
+			// Round to nearest integer
+			px = (unsigned) min(W - sPx, max(0, (int)round(fpx)));
+			py = (unsigned) min(H - sPx, max(0, (int)round(fpy)));
 
-			old = qx;
-			qx = (unsigned) min(W - sPx, max(0,
-			     (int)(qx + round(fflow(old+sPx/2, qy+sPx/2, qt+ht, 0)))));
-			qy = (unsigned) min(H - sPx, max(0,
-			     (int)(qy + round(fflow(old+sPx/2, qy+sPx/2, qt+ht, 1)))));
+			// Next point in subpixel patch trajectory
+			fqx += fflow(qx + sPx/2, qy + sPx/2, qt + ht, 0);
+			fqy += fflow(qx + sPx/2, qy + sPx/2, qt + ht, 1);
+			// Round to nearest integer
+			qx = (unsigned) min(W - sPx, max(0, (int)round(fqx)));
+			qy = (unsigned) min(H - sPx, max(0, (int)round(fqy)));
+#else // int trajectories
+			int fflow_x = round(fflow(px + sPx/2, py + sPx/2, pt + ht, 0));
+			int fflow_y = round(fflow(px + sPx/2, py + sPx/2, pt + ht, 1));
+			px = (unsigned) min(W - sPx, max(0, (int)(px + fflow_x)));
+			py = (unsigned) min(H - sPx, max(0, (int)(py + fflow_y)));
+
+			fflow_x = round(fflow(qx + sPx/2, qy + sPx/2, qt + ht, 0))
+			fflow_y = round(fflow(qx + sPx/2, qy + sPx/2, qt + ht, 1))
+			qx = (unsigned) min(W - sPx, max(0, (int)(qx + fflow_x)));
+			qy = (unsigned) min(H - sPx, max(0, (int)(qy + fflow_y)));
+#endif
 		}
 	}
 
@@ -904,7 +975,7 @@ inline void localSearch(
 ,	std::unordered_map<unsigned, int>& alreadySeen
 ,	std::vector<std::pair<float, unsigned> >& bestPatches
 ,	Video<float> &fflow
-,   bool mc
+,	bool mc
 ){
 	int sWx = s;
 	int sWy = s;
@@ -1096,43 +1167,63 @@ int computeSimilarPatches(
  *        without processing it.
  **/
 void dct_2d_process(
-    vector<float> &DCT_table_2D
-,   Video<float> const& vid
-,   vector<unsigned> const& patch_table 
-,   fftwf_plan * plan
-,   const unsigned kHW
-,   const unsigned ktHW
-,   vector<float> const& coef_norm
-,   Video<float> &fflow
-,   bool mc
+	vector<float> &DCT_table_2D
+,	Video<float> const& vid
+,	vector<unsigned> const& patch_table 
+,	fftwf_plan * plan
+,	const unsigned kHW
+,	const unsigned ktHW
+,	vector<float> const& coef_norm
+,	Video<float> &fflow
+,	bool mc
 ){
 	//! Declarations
+	const VideoSize sz = vid.sz;
 	const unsigned kHW_2 = kHW * kHW;
 	const unsigned kHW_2_t = kHW_2 * ktHW;
-	const unsigned size = vid.sz.channels * kHW_2_t * patch_table.size();
+	const unsigned size = sz.channels * kHW_2_t * patch_table.size();
+
+	using std::min;
+	using std::max;
+	using std::round;
 
 	//! Allocating Memory
 	float* vec = (float*) fftwf_malloc(size * sizeof(float));
 	float* dct = (float*) fftwf_malloc(size * sizeof(float));
 
-	for (unsigned c = 0; c < vid.sz.channels; c++)
+	for (unsigned c = 0; c < sz.channels; c++)
 	{
 		const unsigned dc_p = c * kHW_2_t * patch_table.size();
 		for(unsigned n = 0; n < patch_table.size(); ++n)
 		{
 			unsigned i,j,t,tempc;
-			vid.sz.coords(patch_table[n], i, j, t, tempc);
+			sz.coords(patch_table[n], i, j, t, tempc);
+#ifdef FLOAT_TRAJECTORIES
+			// Initialize sub-pixel patch trajectories
+			// (only needed if motion compensated patches are used)
+			float fi = i, fj = j;
+#endif
 			for (unsigned ht = 0; ht < ktHW; ht++)
 			{
 				for (unsigned p = 0; p < kHW; p++)
-					for (unsigned q = 0; q < kHW; q++)
-						vec[p * kHW + q + ht * kHW_2 + dc_p + n * kHW_2_t] =
-							vid(i+q,j+p,t+ht,c);
+				for (unsigned q = 0; q < kHW; q++)
+					vec[p * kHW + q + ht * kHW_2 + dc_p + n * kHW_2_t] = vid(i+q,j+p,t+ht,c);
+
 				if(mc && ht < ktHW - 1)
 				{
-					unsigned oldi = i;
-					i = (unsigned) std::min(std::max((int)(i + std::round(fflow(i + kHW/2,j + kHW/2,t+ht,0))), 0), (int)(vid.sz.width - kHW));
-					j = (unsigned) std::min(std::max((int)(j + std::round(fflow(oldi + kHW/2,j + kHW/2,t+ht,1))), 0), (int)(vid.sz.height - kHW));
+#ifdef FLOAT_TRAJECTORIES
+					// Next point in subpixel patch trajectory
+					fi += fflow(i + kHW/2, j + kHW/2, t + ht, 0);
+					fj += fflow(i + kHW/2, j + kHW/2, t + ht, 1);
+					// Round to nearest integer
+					i = (unsigned)min(max((int)round(fi), 0), (int)(sz.width  - kHW));
+					j = (unsigned)min(max((int)round(fj), 0), (int)(sz.height - kHW));
+#else
+					int fflow_i = std::round(fflow(i + kHW/2, j + kHW/2, t + ht, 0));
+					int fflow_j = std::round(fflow(i + kHW/2, j + kHW/2, t + ht, 1));
+					i = (unsigned)min(max((int)(i + fflow_i), 0), (int)(sz.width  - kHW));
+					j = (unsigned)min(max((int)(j + fflow_j), 0), (int)(sz.height - kHW));
+#endif
 				}
 			}
 		}
@@ -1146,11 +1237,11 @@ void dct_2d_process(
 	for (unsigned c = 0; c < vid.sz.channels; c++)
 	{
 		const unsigned dc_p = c * kHW_2_t * patch_table.size();
-		for(unsigned n = 0; n < patch_table.size(); ++n)
-			for (unsigned kt = 0; kt < ktHW; kt++)
-                for (unsigned k = 0; k < kHW_2; k++)
-                    DCT_table_2D[dc_p + n * kHW_2_t + k + kt * kHW_2] =
-                        dct[dc_p + n * kHW_2_t + k + kt * kHW_2] * coef_norm[k];
+		for (unsigned n = 0; n < patch_table.size(); ++n)
+		for (unsigned kt = 0; kt < ktHW; kt++)
+		for (unsigned k = 0; k < kHW_2; k++)
+			DCT_table_2D[dc_p + n * kHW_2_t + k + kt * kHW_2] =
+				dct[dc_p + n * kHW_2_t + k + kt * kHW_2] * coef_norm[k];
 	}
 	fftwf_free(dct);
 }
@@ -1175,38 +1266,59 @@ void dct_2d_process(
  * @param hpd : high pass filter of the forward bior1.5 2d transform.
  **/
 void bior_2d_process(
-    vector<float> &bior_table_2D
-,   Video<float> const& vid
-,   vector<unsigned> const& patch_table
-,   const unsigned kHW
-,   const unsigned ktHW
-,   vector<float> &lpd
-,   vector<float> &hpd
-,   Video<float> &fflow
-,   bool mc
+	vector<float> &bior_table_2D
+,	Video<float> const& vid
+,	vector<unsigned> const& patch_table
+,	const unsigned kHW
+,	const unsigned ktHW
+,	vector<float> &lpd
+,	vector<float> &hpd
+,	Video<float> &fflow
+,	bool mc
 ){
+	const VideoSize sz = vid.sz;
+
 	//! Declarations
 	const unsigned kHW_2 = kHW * kHW;
 	const unsigned kHW_2_t = kHW_2 * ktHW;
 
 	//! If i_r == ns, then we have to process all Bior1.5 transforms
-	for (unsigned c = 0; c < vid.sz.channels; c++)
+	for (unsigned c = 0; c < sz.channels; c++)
 	{
 		const unsigned dc_p = c * kHW_2_t * patch_table.size();
 		for(unsigned n = 0; n < patch_table.size(); ++n)
 		{
 			unsigned i,j,t,tempc;
-			vid.sz.coords(patch_table[n], j, i ,t, tempc);
+			sz.coords(patch_table[n], j, i ,t, tempc);
+#ifdef FLOAT_TRAJECTORIES
+			// Initialize sub-pixel patch trajectories
+			// (only needed if motion compensated patches are used)
+			float fi = i, fj = j;
+#endif
 			for(unsigned ht = 0; ht < ktHW; ++ht)
 			{
 				bior_2d_forward(vid, bior_table_2D, kHW, j, i, t+ht, c,
-						dc_p + n * kHW_2_t + ht * kHW_2, lpd, hpd);
-                if(mc && ht < ktHW - 1)
-                {
-                    unsigned oldi = i;
-                    i = (unsigned) std::min(std::max((int)(i + std::round(fflow(j + kHW/2,i + kHW/2,t+ht,1))), 0), (int)(vid.sz.height - kHW));
-                    j = (unsigned) std::min(std::max((int)(j + std::round(fflow(j + kHW/2,oldi + kHW/2,t+ht,0))), 0), (int)(vid.sz.width - kHW));
-                }
+				                dc_p + n * kHW_2_t + ht * kHW_2, lpd, hpd);
+
+				if(mc && ht < ktHW - 1)
+				{
+#ifdef FLOAT_TRAJECTORIES
+					// Next point in subpixel patch trajectory
+					fj += fflow(j + kHW/2, i + kHW/2, t + ht, 0);
+					fi += fflow(j + kHW/2, i + kHW/2, t + ht, 1);
+					// Round to nearest integer
+					j = (unsigned)min(max((int)round(fj), 0), (int)(sz.width  - kHW));
+					i = (unsigned)min(max((int)round(fi), 0), (int)(sz.height - kHW));
+#else
+					int fflow_j = std::round(fflow(j + kHW/2, i + kHW/2, t + ht, 0));
+					int fflow_i = std::round(fflow(j + kHW/2, i + kHW/2, t + ht, 1));
+					j = (unsigned)min(max((int)(j + fflow_j), 0), (int)(sz.width  - kHW));
+					i = (unsigned)min(max((int)(i + fflow_i), 0), (int)(sz.height - kHW));
+#endif
+					unsigned oldi = i;
+					j = (unsigned) std::min(std::max((int)(j + std::round(fflow(j + kHW/2, oldi + kHW/2,t+ht,0))), 0), (int)(sz.width - kHW));
+					i = (unsigned) std::min(std::max((int)(i + std::round(fflow(j + kHW/2, oldi + kHW/2,t+ht,1))), 0), (int)(sz.height - kHW));
+				}
 			}
 		}
 	}

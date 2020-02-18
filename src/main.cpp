@@ -36,22 +36,22 @@
 using namespace std;
 
 void initializeParameters_1(
-        Parameters& prms
-        ,	const int k
-        ,	const int kt
-        ,	const int Nf
-        ,	const int Ns
-        ,	const int Npr
-        ,	const int Nb
-        ,	const int p
-        ,	const int N
-        ,	const int d
-        ,	const float tau
-        ,	const float lambda3D
-        ,	const unsigned T_2D
-        ,	const unsigned T_3D
-        ,	const float sigma
-        ){
+    Parameters& prms
+,   const int k
+,   const int kt
+,   const int Nf
+,   const int Ns
+,   const int Npr
+,   const int Nb
+,   const int p
+,   const int N
+,   const int d
+,   const float tau
+,   const float lambda3D
+,   const unsigned T_2D
+,   const unsigned T_3D
+,   const float sigma
+){
     if(k < 0)
         prms.k = 8;
     else
@@ -60,11 +60,7 @@ void initializeParameters_1(
     if(kt < 0)
         prms.kt = 1;
     else
-#ifndef SLOW3D
-        prms.kt = std::min(kt, 2);
-#else
     prms.kt = kt;
-#endif
 
     if(Nf < 0)
         prms.Nf = 4;
@@ -89,7 +85,7 @@ void initializeParameters_1(
         prms.d = (d*d*255.)/(prms.k*prms.k*prms.kt);
 
     if(p < 0)
-        //		prms.p = 6;
+      //prms.p = 6;
         prms.p = prms.k/4*3;
     else
         prms.p = p;
@@ -131,21 +127,21 @@ void initializeParameters_1(
 }
 
 void initializeParameters_2(
-        Parameters& prms
-        ,	const int k
-        ,	const int kt
-        ,	const int Nf
-        ,	const int Ns
-        ,	const int Npr
-        ,	const int Nb
-        ,	const int p
-        ,	const int N
-        ,	const int d
-        ,	const float tau
-        ,	const unsigned T_2D
-        ,	const unsigned T_3D
-        ,	const float sigma
-        ){
+    Parameters& prms
+,   const int k
+,   const int kt
+,   const int Nf
+,   const int Ns
+,   const int Npr
+,   const int Nb
+,   const int p
+,   const int N
+,   const int d
+,   const float tau
+,   const unsigned T_2D
+,   const unsigned T_3D
+,   const float sigma
+){
     if(k < 0)
         prms.k = (sigma > 30) ? 8 : 7;
     else
@@ -154,11 +150,7 @@ void initializeParameters_2(
     if(kt < 0)
         prms.kt = 1;
     else
-#ifndef SLOW3D
-        prms.kt = std::min(kt, 2);
-#else
     prms.kt = kt;
-#endif
 
     if(Nf < 0)
         prms.Nf = 4;
@@ -184,7 +176,7 @@ void initializeParameters_2(
         prms.d = (d*d*255.)/(prms.k*prms.k*prms.kt);
 
     if(p < 0)
-        //		prms.p = 4;
+      //prms.p = 4;
         prms.p = prms.k/2;
     else
         prms.p = p;
@@ -273,30 +265,30 @@ int main(int argc, char **argv)
     const bool verbose  = (bool) clo_option("-verbose", true , "> Verbose output");
 
     //! VBM3D parameters
-    const int kHard = clo_option("-kHard", -1,          "< Spatial size of the patch (first pass)");
-    const int ktHard = clo_option("-ktHard", -1,        "< Temporal size of the patch (first pass)");
-    const int NfHard = clo_option("-NfHard", -1,        "< Number frames used before and after the reference (first pass)");
-    const int NsHard = clo_option("-NsHard", -1,        "< Size of the searhc region in the reference frame (first pass)");
-    const int NprHard = clo_option("-NprHard", -1,      "< Size of the search region in the other frames (first pass)");
-    const int NbHard = clo_option("-NbHard", -1,        "< Maximum number of neighbors per frame (first pass)");
-    const int pHard = clo_option("-pHard", -1,          "< Step between each patch (first pass)");
-    const int NHard = clo_option("-NHard", -1,          "< Maximum number of neighbors (first pass)");
-    const int dHard = clo_option("-dHard", -1,          "< Bias toward center patches (first pass)");
-    const float tauHard = clo_option("-tauHard", -1.,   "< Distance threshold on neighbors (first pass)");
+    const int kHard = clo_option("-kHard", -1, "< Spatial size of the patch (first pass)");
+    const int ktHard = clo_option("-ktHard", -1, "< Temporal size of the patch (first pass)");
+    const int NfHard = clo_option("-NfHard", -1, "< Number frames used before and after the reference (first pass)");
+    const int NsHard = clo_option("-NsHard", -1, "< Size of the searhc region in the reference frame (first pass)");
+    const int NprHard = clo_option("-NprHard", -1, "< Size of the search region in the other frames (first pass)");
+    const int NbHard = clo_option("-NbHard", -1, "< Maximum number of neighbors per frame (first pass)");
+    const int pHard = clo_option("-pHard", -1, "< Step between each patch (first pass)");
+    const int NHard = clo_option("-NHard", -1, "< Maximum number of neighbors (first pass)");
+    const int dHard = clo_option("-dHard", -1, "< Bias toward center patches (first pass)");
+    const float tauHard = clo_option("-tauHard", -1., "< Distance threshold on neighbors (first pass)");
     const float lambda3D = clo_option("-lambda3d", -1., "< Coefficient threhsold (first pass)");
     const unsigned T_2D_hard  = (unsigned) clo_option("-T2dh", NONE , "< 2D transform (first pass), choice is 4 (dct) or 5 (bior)");
     const unsigned T_3D_hard  = (unsigned) clo_option("-T3dh", NONE , "< 1D transform (first pass), choice is 6 (hadamard) or 7 (haar)");
 
-    const int kWien = clo_option("-kWien", -1,          "< Spatial size of the patch (second pass)");
-    const int ktWien = clo_option("-ktWien", -1,        "< Temporal size of the patch (second pass)");
-    const int NfWien = clo_option("-NfWien", -1,        "< Number frames used before and after the reference (second pass)");
-    const int NsWien = clo_option("-NsWien", -1,        "< Size of the searhc region in the reference frame (second pass)");
-    const int NprWien = clo_option("-NprWien", -1,      "< Size of the search region in the other frames (second pass)");
-    const int NbWien = clo_option("-NbWien", -1,        "< Maximum number of neighbors per frame (second pass)");
-    const int pWien = clo_option("-pWien", -1,          "< Step between each patch (second pass)");
-    const int NWien = clo_option("-NWien", -1,          "< Maximum number of neighbors (second pass)");
-    const int dWien = clo_option("-dWien", -1,          "< Bias toward center patches (second pass)");
-    const float tauWien = clo_option("-tauWien", -1.,   "< Distance threshold on neighbors (second pass)");
+    const int kWien = clo_option("-kWien", -1, "< Spatial size of the patch (second pass)");
+    const int ktWien = clo_option("-ktWien", -1, "< Temporal size of the patch (second pass)");
+    const int NfWien = clo_option("-NfWien", -1, "< Number frames used before and after the reference (second pass)");
+    const int NsWien = clo_option("-NsWien", -1, "< Size of the searhc region in the reference frame (second pass)");
+    const int NprWien = clo_option("-NprWien", -1, "< Size of the search region in the other frames (second pass)");
+    const int NbWien = clo_option("-NbWien", -1, "< Maximum number of neighbors per frame (second pass)");
+    const int pWien = clo_option("-pWien", -1, "< Step between each patch (second pass)");
+    const int NWien = clo_option("-NWien", -1, "< Maximum number of neighbors (second pass)");
+    const int dWien = clo_option("-dWien", -1, "< Bias toward center patches (second pass)");
+    const float tauWien = clo_option("-tauWien", -1., "< Distance threshold on neighbors (second pass)");
     const unsigned T_2D_wien  = (unsigned) clo_option("-T2dw", NONE , "< 2D transform (second pass), choice is 4 (dct) or 5 (bior)");
     const unsigned T_3D_wien  = (unsigned) clo_option("-T3dw", NONE , "< 1D transform (first pass), choice is 6 (hadamard) or 7 (haar)");
 
@@ -378,7 +370,7 @@ int main(int argc, char **argv)
 
     // Check that all sizes are consistent
     if(fflow.sz.width  != bflow.sz.width  || fflow.sz.width  != vid.sz.width ||
-            fflow.sz.height != bflow.sz.height || fflow.sz.height != vid.sz.height)
+       fflow.sz.height != bflow.sz.height || fflow.sz.height != vid.sz.height)
         return fprintf(stderr, "%s: incompatible flows and/or frame sizes.\n"
                 "Try `%s --help' for more information.\n", argv[0], argv[0]),
                EXIT_FAILURE;
