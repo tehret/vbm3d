@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2018, Thibaud Ehret <ehret.thibaud@gmail.com>
+ * Copyright (c) 2018, Pablo Arias <pablo.arias@upf.edu>
  * All rights reserved.
  *
  * This program is free software: you can use, modify and/or
@@ -23,15 +24,11 @@
 #include "Utilities/LibVideoT.hpp"
 #include "Utilities/cmd_option.h"
 
-#define YUV       0
-#define YCBCR     1
-#define OPP       2
-#define RGB       3
-#define DCT       4
-#define BIOR      5
-#define HADAMARD  6
-#define HAAR      7
-#define NONE      8
+#define DCT       0
+#define BIOR      1
+#define HADAMARD  2
+#define HAAR      3
+#define NONE     -1
 
 using namespace std;
 
@@ -85,7 +82,8 @@ void initializeParameters_1(
         prms.d = (d*d*255.)/(prms.k*prms.k*prms.kt);
 
     if(p < 0)
-      //prms.p = 6;
+        // In the original VBM3D article, the authors used a step of 6 for a patch of size 8 (so 3/4 of the size of the patch).
+        // Therefore, we generalize that ratio to all patch size as a default step parameter.
         prms.p = prms.k/4*3;
     else
         prms.p = p;
@@ -176,7 +174,8 @@ void initializeParameters_2(
         prms.d = (d*d*255.)/(prms.k*prms.k*prms.kt);
 
     if(p < 0)
-      //prms.p = 4;
+        // In the original VBM3D article, the authors used a step of 4 for a patch of size 8 (so 1/2 of the size of the patch).
+        // Therefore, we generalize that ratio to all patch size as a default step parameter.
         prms.p = prms.k/2;
     else
         prms.p = p;
@@ -250,7 +249,8 @@ int main(int argc, char **argv)
     const string  noisy_path = clo_option("-nisy" , ""               , "> Noisy sequence (only when -add is true)");
     const string  final_path = clo_option("-deno" , "deno_%03d.tiff" , "> Denoised sequence");
     const string  basic_path = clo_option("-bsic" , "bsic_%03d.tiff" , "> Basic denoised sequence");
-    const string   diff_path = clo_option("-diff" , ""               , "> Difference sequence (only when -add is true)");
+    const string   diff_path = clo_option("-diff" , ""               , "> Difference sequence between noisy and output (only when -add is true)");
+    const string  diffi_path = clo_option("-diffi", ""               , "> Difference sequence between input and output");
     const string   meas_path = clo_option("-meas" , "measure.txt"    , "> Text file with PSNR/RMSE (only when -add is true)");
     const string  fflow_path = clo_option("-fflow", ""  , "< Forward optical flow ");
     const string  bflow_path = clo_option("-bflow", ""  , "< Backward optical flow ");
@@ -265,34 +265,34 @@ int main(int argc, char **argv)
     const bool verbose  = (bool) clo_option("-verbose", true , "> Verbose output");
 
     //! VBM3D parameters
-    const int kHard = clo_option("-kHard", -1, "< Spatial size of the patch (first pass)");
-    const int ktHard = clo_option("-ktHard", -1, "< Temporal size of the patch (first pass)");
-    const int NfHard = clo_option("-NfHard", -1, "< Number frames used before and after the reference (first pass)");
-    const int NsHard = clo_option("-NsHard", -1, "< Size of the searhc region in the reference frame (first pass)");
-    const int NprHard = clo_option("-NprHard", -1, "< Size of the search region in the other frames (first pass)");
-    const int NbHard = clo_option("-NbHard", -1, "< Maximum number of neighbors per frame (first pass)");
-    const int pHard = clo_option("-pHard", -1, "< Step between each patch (first pass)");
-    const int NHard = clo_option("-NHard", -1, "< Maximum number of neighbors (first pass)");
-    const int dHard = clo_option("-dHard", -1, "< Bias toward center patches (first pass)");
-    const float tauHard = clo_option("-tauHard", -1., "< Distance threshold on neighbors (first pass)");
-    const float lambda3D = clo_option("-lambda3d", -1., "< Coefficient threhsold (first pass)");
-    const unsigned T_2D_hard  = (unsigned) clo_option("-T2dh", NONE , "< 2D transform (first pass), choice is 4 (dct) or 5 (bior)");
-    const unsigned T_3D_hard  = (unsigned) clo_option("-T3dh", NONE , "< 1D transform (first pass), choice is 6 (hadamard) or 7 (haar)");
+    const int kHard = clo_option("-kHard", NONE, "< Spatial size of the patch (first pass)");
+    const int ktHard = clo_option("-ktHard", NONE, "< Temporal size of the patch (first pass)");
+    const int NfHard = clo_option("-NfHard", NONE, "< Number frames used before and after the reference (first pass)");
+    const int NsHard = clo_option("-NsHard", NONE, "< Size of the search region in the reference frame (first pass)");
+    const int NprHard = clo_option("-NprHard", NONE, "< Size of the search region in the other frames (first pass)");
+    const int NbHard = clo_option("-NbHard", NONE, "< Maximum number of neighbors per frame (first pass)");
+    const int pHard = clo_option("-pHard", NONE, "< Step between each patch (first pass)");
+    const int NHard = clo_option("-NHard", NONE, "< Maximum number of neighbors (first pass)");
+    const int dHard = clo_option("-dHard", NONE, "< Bias toward center patches (first pass)");
+    const float tauHard = clo_option("-tauHard", NONE, "< Distance threshold on neighbors (first pass)");
+    const float lambda3D = clo_option("-lambda3d", NONE, "< Coefficient threhsold (first pass)");
+    const unsigned T_2D_hard  = (unsigned) clo_option("-T2dh", NONE, "< 2D transform (first pass), choice is 1 (dct) or 2 (bior)");
+    const unsigned T_3D_hard  = (unsigned) clo_option("-T3dh", NONE, "< 1D transform (first pass), choice is 3 (hadamard) or 4 (haar)");
 
-    const int kWien = clo_option("-kWien", -1, "< Spatial size of the patch (second pass)");
-    const int ktWien = clo_option("-ktWien", -1, "< Temporal size of the patch (second pass)");
-    const int NfWien = clo_option("-NfWien", -1, "< Number frames used before and after the reference (second pass)");
-    const int NsWien = clo_option("-NsWien", -1, "< Size of the searhc region in the reference frame (second pass)");
-    const int NprWien = clo_option("-NprWien", -1, "< Size of the search region in the other frames (second pass)");
-    const int NbWien = clo_option("-NbWien", -1, "< Maximum number of neighbors per frame (second pass)");
-    const int pWien = clo_option("-pWien", -1, "< Step between each patch (second pass)");
-    const int NWien = clo_option("-NWien", -1, "< Maximum number of neighbors (second pass)");
-    const int dWien = clo_option("-dWien", -1, "< Bias toward center patches (second pass)");
-    const float tauWien = clo_option("-tauWien", -1., "< Distance threshold on neighbors (second pass)");
-    const unsigned T_2D_wien  = (unsigned) clo_option("-T2dw", NONE , "< 2D transform (second pass), choice is 4 (dct) or 5 (bior)");
-    const unsigned T_3D_wien  = (unsigned) clo_option("-T3dw", NONE , "< 1D transform (first pass), choice is 6 (hadamard) or 7 (haar)");
+    const int kWien = clo_option("-kWien", NONE, "< Spatial size of the patch (second pass)");
+    const int ktWien = clo_option("-ktWien", NONE, "< Temporal size of the patch (second pass)");
+    const int NfWien = clo_option("-NfWien", NONE, "< Number of frames used before and after the reference (second pass)");
+    const int NsWien = clo_option("-NsWien", NONE, "< Size of the search region in the reference frame (second pass)");
+    const int NprWien = clo_option("-NprWien", NONE, "< Size of the search region in the other frames (second pass)");
+    const int NbWien = clo_option("-NbWien", NONE, "< Maximum number of neighbors per frame (second pass)");
+    const int pWien = clo_option("-pWien", NONE, "< Step between each patch (second pass)");
+    const int NWien = clo_option("-NWien", NONE, "< Maximum number of neighbors (second pass)");
+    const int dWien = clo_option("-dWien", NONE, "< Bias toward center patches (second pass)");
+    const float tauWien = clo_option("-tauWien", NONE, "< Distance threshold on neighbors (second pass)");
+    const unsigned T_2D_wien  = (unsigned) clo_option("-T2dw", NONE, "< 2D transform (second pass), choice is 0 (dct) or 1 (bior)");
+    const unsigned T_3D_wien  = (unsigned) clo_option("-T3dw", NONE, "< 1D transform (first pass), choice is 2 (hadamard) or 3 (haar)");
 
-    const unsigned color_space  =  (unsigned) clo_option("-color", 0 , "< Set the color space (0 correspond to RGB->OPP, any other value keeps RGB for now)");
+    const bool color_space  =  (bool) clo_option("-color", true, "< Transform the color space during the processing");
     const bool mc  = (bool) clo_option("-mc", false, "< Motion compensation for 3d patches");
 
     //! Check inputs
@@ -418,10 +418,16 @@ int main(int argc, char **argv)
 
         //! Compute Difference
         if (diff_path != "")
-            VideoUtils::computeDiff(vid, vid_denoised, vid_diff, fSigma);
+            VideoUtils::computeDiff(vid_noisy, vid_denoised, vid_diff, fSigma);
 
         if (noisy_path != "") vid_noisy.saveVideo(noisy_path, firstFrame, frameStep);
         if ( diff_path != "") vid_diff .saveVideo( diff_path, firstFrame, frameStep);
+    }
+    //! Compute Difference
+    if (diffi_path != "")
+    {
+        VideoUtils::computeDiff(vid, vid_denoised, vid_diff, fSigma);
+        vid_diff.saveVideo(diffi_path, firstFrame, frameStep);
     }
 
     //! save noisy, denoised and differences videos

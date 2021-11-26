@@ -597,10 +597,10 @@ namespace VideoUtils
 	}
 	
 	/**
-	 * @brief Compute a difference image between i_vid1 and i_vid2.
+	 * @brief Compute a difference video between i_vid1 and i_vid2.
 	 *
-	 * @param i_vid1: reference image;
-	 * @param i_vid2: image to compare;
+	 * @param i_vid1: reference video;
+	 * @param i_vid2: video to compare;
 	 * @param o_vidDiff: will contain the difference;
 	 * @param p_sigma: standard deviation of the noise;
 	 * @param p_min, p_max : range of data (usually [0, 255]);
@@ -622,7 +622,7 @@ namespace VideoUtils
 		o_vidDiff.resize(i_vid1.sz);
 		for (unsigned k = 0; k < i_vid1.sz.whcf; k++)
 		{
-			float value =  ((float)i_vid1(k) - (float)i_vid2(k) + p_sigma) * p_max / (2.f * p_sigma);
+			float value =  ((float)i_vid1(k) - (float)i_vid2(k)) + (p_max - p_min) / 2.f;
 			o_vidDiff(k) = clip(value, p_min, p_max);
 		}
 
@@ -763,7 +763,6 @@ namespace VideoUtils
 	template <class T>
 	void transformColorSpace(
 		Video<T> &io_vid
-	,	const unsigned color_space
 	,	const bool p_isForward
 	){
 		//! If the image as only one channel, do nothing

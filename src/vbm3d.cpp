@@ -31,14 +31,10 @@
 
 #define SQRT2     1.414213562373095
 #define SQRT2_INV 0.7071067811865475
-#define YUV       0
-#define YCBCR     1
-#define OPP       2
-#define RGB       3
-#define DCT       4
-#define BIOR      5
-#define HADAMARD  6
-#define HAAR      7
+#define DCT       0
+#define BIOR      1
+#define HADAMARD  2
+#define HAAR      4
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -83,8 +79,7 @@ bool ComparaisonFirst(pair<float,unsigned> pair1, pair<float,unsigned> pair2)
  * @param tau_2D_hard (resp. tau_2D_wien): 2D transform to apply
  *        on every 3D group for the first (resp. second) part.
  *        Allowed values are DCT and BIOR;
- * @param color_space: Transformation from RGB to YUV. Allowed
- *        values are RGB (do nothing), YUV, YCBCR and OPP.
+ * @param color_space: Use a color transformation.
  *
  * @return EXIT_FAILURE if color_space has not expected
  *         type, otherwise return EXIT_SUCCESS.
@@ -98,7 +93,7 @@ int run_vbm3d(
 ,   Video<float> &vid_denoised
 ,   const Parameters& prms_1
 ,   const Parameters& prms_2
-,   const unsigned color_space
+,   const bool color_space
 ){
 	//! Check memory allocation
 	if (vid_basic.sz != vid_noisy.sz)
@@ -108,14 +103,14 @@ int run_vbm3d(
 
 	const int chnls = vid_noisy.sz.channels;
  
-	//! Transformation to YUV color space if necessary
-	if(color_space == 0)
+	//! Transformation to OPP color space if necessary
+	if(color_space)
 	{
 		printf("Transforming the color space\n");
 		if(prms_1.k > 0)
-			VideoUtils::transformColorSpace(vid_noisy, color_space, true);
+			VideoUtils::transformColorSpace(vid_noisy, true);
 		else
-			VideoUtils::transformColorSpace(vid_basic, color_space, true);
+			VideoUtils::transformColorSpace(vid_basic, true);
 	}
 
 	//! Check if OpenMP is used or if number of cores of the computer is > 1
@@ -359,11 +354,11 @@ int run_vbm3d(
 	}
 
 	//! Inverse color space transform to RGB if necessary
-	if(color_space == 0)
+	if(color_space)
 	{
-		VideoUtils::transformColorSpace(vid_denoised, color_space, false);
-		VideoUtils::transformColorSpace(vid_noisy, color_space, false);
-		VideoUtils::transformColorSpace(vid_basic, color_space, false);
+		VideoUtils::transformColorSpace(vid_denoised,false);
+		VideoUtils::transformColorSpace(vid_noisy, false);
+		VideoUtils::transformColorSpace(vid_basic, false);
 	}
 
 	//! Free Memory
@@ -460,7 +455,7 @@ void vbm3d_1st_step(
 ,   fftwf_plan *  plan_1d
 ,   fftwf_plan *  plan_1d_inv
 ,   VideoUtils::CropPosition* crop
-,   const unsigned color_space
+,   const bool color_space
 ,   Video<float>& numerator
 ,   Video<float>& denominator
 ){
@@ -690,7 +685,7 @@ void vbm3d_2nd_step(
 ,   fftwf_plan *  plan_1d
 ,   fftwf_plan *  plan_1d_inv
 ,   VideoUtils::CropPosition* crop
-,   const unsigned color_space
+,   const bool color_space
 ,   Video<float>& numerator
 ,   Video<float>& denominator
 ){
@@ -839,12 +834,8 @@ void vbm3d_2nd_step(
 
 				//! Transform along the temporal dimension
 				if(prms.kt > 1 && prms.T_2D != BIOR)
-				{
 					temporal_inv_transform(group_3D_est, prms.k, prms.kt, chnls,
 							nSx_r, prms.N, plan_1d_inv);
-					temporal_inv_transform(group_3D_vid, prms.k, prms.kt, chnls,
-							nSx_r, prms.N, plan_1d_inv);
-				}
 
 				//! Save the 3D group. The DCT 2D inverse will be done after.
 				for (unsigned c = 0; c < chnls; c++)

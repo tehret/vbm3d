@@ -13,33 +13,35 @@ Alessandro Foi, and Karen Egiazarian. "Video denoising by sparse 3D transform-do
 collaborative filtering." 2007 15th European Signal Processing Conference. IEEE, 2007".
 
 This code is part of an IPOL (http://www.ipol.im/) publication. Plase cite it
-if you use this code as part of your research. (The article is not already published 
-at this time)
+if you use this code as part of your research.
 It is based on Marc Lebrun's code for the image denoising version of this algorithm (BM3D)
 available on the BM3D IPOL page (http://www.ipol.im/pub/art/2012/l-bm3d/).
+It also uses the TVL1 optical flow from IPOL (http://www.ipol.im/pub/art/2013/26/, available 
+in the folder 'tvl1flow') and the multiscale from https://github.com/npd/multiscaler
+(in the folder 'multiscale').
 
 COMPILATION
 -----------
 
 The code is compilable on Unix/Linux and hopefully on Mac OS (not tested!). 
 
-Compilation: requires the make program.
+Compilation: requires the cmake and make programs.
 
 Dependencies: FFTW3 and OpenMP (optional). 
 For image i/o we use Enric Meinhardt's iio (https://github.com/mnhrdt/iio),
 which requires libpng, libtiff and libjpeg.
  
-Compile the source code using make.
+Configure and compile the source code using cmake and make. It is recommended that you create a folder for building:
 
 UNIX/LINUX/MAC:
+$ mkdir build; cd build
+$ cmake ..
 $ make
 
-Binaries will be created in the current folder.
+Binaries will be created in the `bin` folder.
 
 NOTE: By default, the code is compiled with OpenMP multithreaded
-parallelization disabled. If your system supports it you can activate it 
-by specifying during the compilation with:
-$ make OMP=1
+parallelization enabled if your system supports it.
 The code will then use the maximum number of thread available on your machine (up to 32). 
 This can be reduced by changing the maximum number of threads allowed in lines 126 and 127 
 of `vbm3d.cpp`.
@@ -47,9 +49,9 @@ of `vbm3d.cpp`.
 USAGE
 -----
 
-The following commands have to be run from the current folder:
+The following commands have to be run from the `build/bin` folder:
 
-List all available options:</br>
+List all available options:
 $ ./VBM3Ddenoising --help
 
 While being a video denoising algorithm, the method takes as input the frames of the video 
@@ -64,20 +66,32 @@ There is only four mandatory input arguments:
 
 When providing a sequence that is already noisy the option `-add` should be set to false.
 
-All path should be given using the C standard. For example to reference to the following video:
-video/i0000.png
-video/i0001.png
-video/i0002.png
-video/i0003.png
-video/i0004.png
-video/i0005.png
-video/i0006.png
-video/i0007.png
-video/i0008.png
-video/i0009.png
+All path should be given using the C standard. For example to reference to the provided video:
+data/i0001.png
+data/i0002.png
+data/i0003.png
+data/i0004.png
+data/i0005.png
+data/i0006.png
+data/i0007.png
+data/i0008.png
+data/i0009.png
 
-The command for denoising with a noise standard deviation of 20 should be 
-$ ./VBM3Ddenoising -i video/i%04d.png -f 0 -l 9 -sigma 20
+The command for denoising with a noise standard deviation of 20 should be: 
+$ ./VBM3Ddenoising -i ../../data/i%04d.png -f 1 -l 9 -sigma 20
+
+This creates a basic denoised sequence (bsic_*.png) and a final denoised sequence (deno_*.png).
+It also create a text file (measure.txt) with the respective PSNRs and RMSEs (when -add is set to True).
+
+The denoising with optical flow can be called using the `VBM3Ddenoising_OF.sh` script:
+$ ./VBM3Ddenoising_OF.sh ../../data/i%04d.png 20 deno_%03d.tif 1 9
+
+Similarly the multiscale denoising can be called using the `VBM3Ddenoising_multiscale.sh` script. The following
+command performs a denoising with two scales (DCT version) with the default VBM3D parameters: 
+$ ./VBM3Ddenoising_multiscale.sh ../../data/i%04d.png 20 test deno_%03d.tif 1 9 "" 2 0
+
+Finally the multiscale denoising with optical flow can be called using the `VBM3Ddenoising_OF_multiscale.sh` script:
+$ ./VBM3Ddenoising_OF_multiscale.sh ../../data/i%04d.png 20 test deno_%03d.tif 1 9 "" 2 0
 
 -----
 

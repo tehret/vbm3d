@@ -31,7 +31,7 @@ int run_vbm3d(
 ,   Video<float> &vid_denoised
 ,   const Parameters& prms_1
 ,   const Parameters& prms_2
-,   const unsigned color_space
+,   const bool color_space
 );
 
 //! 1st step of VBM3D
@@ -46,7 +46,7 @@ void vbm3d_1st_step(
 ,   fftwf_plan *  plan_1d
 ,   fftwf_plan *  plan_1d_inv
 ,   VideoUtils::CropPosition* crop
-,   const unsigned color_space
+,   const bool color_space
 ,   Video<float>& numberator
 ,   Video<float>& denominator
 );
@@ -64,7 +64,7 @@ void vbm3d_2nd_step(
 ,   fftwf_plan *  plan_1d
 ,   fftwf_plan *  plan_1d_inv
 ,   VideoUtils::CropPosition* crop
-,   const unsigned color_space
+,   const bool color_space
 ,   Video<float>& numberator
 ,   Video<float>& denominator
 );

@@ -24,7 +24,7 @@ struct Parameters
 	unsigned k;
 	/// Size of the patch (temporal)
 	unsigned kt;
-	/// Step
+	/// Step size
 	unsigned p;
 
 	/// Maximum number of similar patches

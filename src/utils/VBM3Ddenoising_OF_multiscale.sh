@@ -1,15 +1,14 @@
 #!/bin/bash
-PATH_MULTISCALE=./
+# Script that perform a multiscale denoising with optical flow using VBM3D
 
 if [ $# -lt 4 ]; then
     echo "$0 input_%03d.png sigma outputFolder out_%03d.tif"
-    echo "    \"\"  # denoising params"
+    echo "    1     # Index of the first frame of the video, (optional) default is 1"
+    echo "    100   # Index of the last frame of the video, (optional) default is 100"
+    echo "    \"\"  # Denoising params. Used to provide arguments to VBM3D similarly to how they would be provided in the command line. For example if one wants to use a patch size of 16 for the first step, this parameter becomes \"-kHard 16\". \"\" keep the default parameters"
     echo "    3     # Number of scales, (optional) default is 3"
-    echo "    1     # index of the first frame of the video, (optional) default is 1"
-    echo "    100   # index of the last frame of the video, (optional) default is 100"
-    echo "    0     # type of multiscaler (0: DCT, 1: Gaussian, 2: Lanczos), default is 0 (optional)"
-    echo "    2     # R_PYR pyramid ratio: 2 (optional), 1.5 also possible"
-    echo "    0.7   # PAR_PYR recomposition ratio : 0.7 (optional)"
+    echo "    0     # Type of multiscaler (0: DCT, 1: Gaussian, 2: Lanczos), default is 0 (optional)"
+    echo "    0.7   # Recomposition ratio : 0.7 (optional)"
     exit 1
 fi
 
@@ -17,65 +16,51 @@ INPUT=$1
 NOISE=$2
 OUT=$3
 OUTPUT=$4
-DEN_ARGS=$5
-LEVELS=3
-FIRST=1
-LAST=100
-MSTYPE=0
-R_PYR=2   
-PAR_PYR=0.7
+FIRST=${5:-1}
+LAST=${6:-100}
+DEN_ARGS=${7:-""}
+LEVELS=${8:-3}
+MSTYPE=${9:-0}
+PAR_PYR=${10:-0.7}
+R_PYR=2
 
-
-if [ -n "$6" ]; then
-    LEVELS=$6
-fi
-if [ -n "$7" ]; then
-    FIRST=$7
-fi
-if [ -n "$8" ]; then
-    LAST=$8
-fi
-if [ -n "$9" ]; then
-    MSTYPE=$9
-fi
-if [ -n "${10}" ]; then
-    PAR_PYR=${10}
-fi
+# We assume that the binaries are in the same folder as the script
+DIR=$( cd "$(dirname "${BASH_SOURCE[0]}")" ; pwd -P )
 
 MS_ARGS="-c ${PAR_PYR}"
 
-# Clean noisy
-rm -r noisy
-rm -r levels
-rm -r denoised
-mkdir noisy
-mkdir levels
-mkdir denoised
+# Create folders
+mkdir -p $OUT/noisy
+mkdir -p $OUT/levels
+mkdir -p $OUT/denoised
 
-$PATH_MULTISCALE/addnoise -i ${INPUT} -sigma $NOISE -f ${FIRST} -l ${LAST}
+# Add noise
+$DIR/addnoise -i ${INPUT} -sigma $NOISE -f ${FIRST} -l ${LAST} \
+	-o "$OUT/noisy/noisy_%04d.tiff"
 
+# Decompose the sequence into the multiple scales
 for ((frame=FIRST; frame<=LAST; ++frame))
 do
-    $PATH_MULTISCALE/decompose $(printf "noisy/noisy_%04d.tiff" $frame) levels/level_ ${LEVELS} _$(printf "%04d" $frame).tiff -t $MSTYPE
+    $DIR/decompose $(printf "$OUT/noisy/noisy_%04d.tiff" $frame) \
+		 "$OUT/levels/level_" ${LEVELS} "_"$(printf "%04d" $frame)".tiff" -t $MSTYPE
 done
 
+# Denoise the different scales using optical flow
 for ((lvl=LEVELS-1; lvl>=0; --lvl))
 do
     sigma=$(bc <<< "scale=2; $NOISE / ${R_PYR}^$lvl")
-    ./VBM3Ddenoising_OF.sh levels/level_${lvl}_%04d.tiff $sigma denoised/level_${lvl}_%04d.tiff ${FIRST} ${LAST} $DEN_ARGS
+    ./VBM3Ddenoising_OF.sh $OUT/levels/level_${lvl}_%04d.tiff \
+        $sigma $OUT/denoised/level_${lvl}_%04d.tiff ${FIRST} ${LAST} "-add false $DEN_ARGS"
 done
 
-wait
+# Recompose the different scales into the final denoised sequence
 for ((frame=FIRST; frame<=LAST; ++frame))
 do
-    $PATH_MULTISCALE/recompose denoised/level_ ${LEVELS} _$(printf "%04d" $frame).tiff $(printf $OUT/$OUTPUT $frame) -t $MSTYPE ${MS_ARGS}
+    $DIR/recompose $OUT/denoised/level_ ${LEVELS} \
+		 _$(printf "%04d" $frame).tiff $(printf $OUT/$OUTPUT $frame) \
+		 -t $MSTYPE ${MS_ARGS}
 done
 
-./psnr -i $OUT/$OUTPUT -r ${INPUT} -f ${FIRST} -l ${LAST} > $OUT/psnr.txt
-
-# Copy noisy to ouput folder
-mv noisy $OUT
-# Copy noisy to ouput folder
-mv levels $OUT
-# Copy first scale to output folder
-mv denoised $OUT
+# Compute the final PSNRs
+./psnr -i $OUT/denoised/level_0_%04d.tiff -r ${INPUT} -f ${FIRST} -l ${LAST} > $OUT/psnr-ss
+./psnr -i $OUT/$OUTPUT -r ${INPUT} -f ${FIRST} -l ${LAST} > $OUT/psnr-ms

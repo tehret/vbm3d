@@ -13,10 +13,13 @@ Alessandro Foi, and Karen Egiazarian. "Video denoising by sparse 3D transform-do
 collaborative filtering." 2007 15th European Signal Processing Conference. IEEE, 2007".
 
 This code is part of an [IPOL](http://www.ipol.im/) publication. Plase cite it
-if you use this code as part of your research ([arxiv link](https://arxiv.org/abs/2001.01802)).
+if you use this code as part of your research ([link](https://www.ipol.im/pub/art/2021/340/)).
 
 It is based on Marc Lebrun's code for the image denoising version of this algorithm (BM3D)
 available on [the BM3D IPOL page](http://www.ipol.im/pub/art/2012/l-bm3d/).
+It also uses the TVL1 optical flow from IPOL ([here](http://www.ipol.im/pub/art/2013/26/), available 
+in the folder 'tvl1flow') and the multiscale from [here](https://github.com/npd/multiscaler)
+(in the folder 'multiscale').
 
 COMPILATION
 -----------
@@ -88,6 +91,24 @@ The command for denoising with a noise standard deviation of 20 should be
 $ ./VBM3Ddenoising -i video/i%04d.png -f 0 -l 9 -sigma 20
 ```
 
+This creates a basic denoised sequence (bsic_*.png) and a final denoised sequence (deno_*.png).
+It also create a text file (measure.txt) with the respective PSNRs and RMSEs (when -add is set to True).
+
+The denoising with optical flow can be called using the `VBM3Ddenoising_OF.sh` script:
+```
+$ ./VBM3Ddenoising_OF.sh video/data/i%04d.png 20 deno_%03d.tif 1 9
+```
+
+Similarly the multiscale denoising can be called using the `VBM3Ddenoising_multiscale.sh` script. The following
+command performs a denoising with two scales (DCT version) with the default VBM3D parameters: 
+```
+$ ./VBM3Ddenoising_multiscale.sh video/data/i%04d.png 20 test deno_%03d.tif 1 9 "" 2 0
+```
+
+Finally the multiscale denoising with optical flow can be called using the `VBM3Ddenoising_OF_multiscale.sh` script:
+```
+$ ./VBM3Ddenoising_OF_multiscale.sh video/data/i%04d.png 20 test deno_%03d.tif 1 9 "" 2 0
+```
 -----
 
 FILES
