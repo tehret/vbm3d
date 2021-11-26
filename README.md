@@ -96,18 +96,18 @@ It also create a text file (measure.txt) with the respective PSNRs and RMSEs (wh
 
 The denoising with optical flow can be called using the `VBM3Ddenoising_OF.sh` script:
 ```
-$ ./VBM3Ddenoising_OF.sh video/data/i%04d.png 20 deno_%03d.tif 1 9
+$ ./VBM3Ddenoising_OF.sh video/i%04d.png 20 deno_%03d.tif 1 9
 ```
 
 Similarly the multiscale denoising can be called using the `VBM3Ddenoising_multiscale.sh` script. The following
 command performs a denoising with two scales (DCT version) with the default VBM3D parameters: 
 ```
-$ ./VBM3Ddenoising_multiscale.sh video/data/i%04d.png 20 test deno_%03d.tif 1 9 "" 2 0
+$ ./VBM3Ddenoising_multiscale.sh video/i%04d.png 20 test deno_%03d.tif 1 9 "" 2 0
 ```
 
 Finally the multiscale denoising with optical flow can be called using the `VBM3Ddenoising_OF_multiscale.sh` script:
 ```
-$ ./VBM3Ddenoising_OF_multiscale.sh video/data/i%04d.png 20 test deno_%03d.tif 1 9 "" 2 0
+$ ./VBM3Ddenoising_OF_multiscale.sh video/i%04d.png 20 test deno_%03d.tif 1 9 "" 2 0
 ```
 -----
 
