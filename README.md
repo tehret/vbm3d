@@ -12,7 +12,7 @@ This source code provides an implementation of VBM3D developped in "Dabov, Kosta
 Alessandro Foi, and Karen Egiazarian. "Video denoising by sparse 3D transform-domain
 collaborative filtering." 2007 15th European Signal Processing Conference. IEEE, 2007".
 
-This code is part of an [IPOL](http://www.ipol.im/) publication. Plase cite it
+This code is part of an [IPOL](http://www.ipol.im/) publication. Please cite it
 if you use this code as part of your research ([link](https://www.ipol.im/pub/art/2021/340/)).
 
 It is based on Marc Lebrun's code for the image denoising version of this algorithm (BM3D)
